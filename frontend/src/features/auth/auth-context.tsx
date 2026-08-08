@@ -39,7 +39,7 @@ function unavailableResult(): AuthResult {
   return {
     error:
       getAuthConfigurationError() ||
-      'Authentication is not available. Check the development configuration.',
+      'Authentication is not available. Check the selected environment configuration.',
   };
 }
 

@@ -1,7 +1,7 @@
 UV ?= uv
 PYTHON_VERSION ?= 3.12
 
-.PHONY: install dev-frontend dev-backend format format-check lint typecheck test build check
+.PHONY: install dev-frontend prod-frontend dev-backend prod-backend format format-check lint typecheck test build check
 
 install:
 	cd frontend && npm ci
@@ -11,10 +11,18 @@ install:
 	cd contracts && $(UV) sync --python $(PYTHON_VERSION) --frozen
 
 dev-frontend:
-	cd frontend && npm run web
+	cd frontend && npm run dev
+
+prod-frontend:
+	cd frontend && npm run prod
 
 dev-backend:
-	cd backend && $(UV) run --env-file .env uvicorn trackmyprops_backend.main:app --app-dir src --reload
+	cd backend && PYTHONPATH=src $(UV) run --env-file .env.development python -m trackmyprops_backend.check_config
+	cd backend && $(UV) run --env-file .env.development uvicorn trackmyprops_backend.main:app --app-dir src --reload
+
+prod-backend:
+	cd backend && PYTHONPATH=src $(UV) run --env-file .env.production python -m trackmyprops_backend.check_config
+	cd backend && $(UV) run --env-file .env.production uvicorn trackmyprops_backend.main:app --app-dir src --host 0.0.0.0 --port 8000
 
 format:
 	cd frontend && npm run format

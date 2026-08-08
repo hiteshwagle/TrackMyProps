@@ -2,7 +2,11 @@ import { useQuery } from '@tanstack/react-query';
 import type { Session } from '@supabase/supabase-js';
 import { z } from 'zod';
 
-import { getPublicServiceUrlError, publicConfig } from '../../config/public-config';
+import {
+  getEnvironmentConfigurationError,
+  getPublicServiceUrlError,
+  publicConfig,
+} from '../../config/public-config';
 
 const currentUserSchema = z
   .object({
@@ -39,9 +43,17 @@ export async function fetchCurrentUser(
   fetchImplementation: typeof fetch = fetch,
 ): Promise<CurrentUser> {
   const configurationError = getPublicServiceUrlError(backendUrl, 'Backend');
-  if (configurationError) {
+  const environmentError =
+    backendUrl === publicConfig.backendUrl
+      ? getEnvironmentConfigurationError(
+          publicConfig.appEnvironment,
+          publicConfig.supabaseUrl,
+          publicConfig.backendUrl,
+        )
+      : null;
+  if (configurationError || environmentError) {
     throw new BackendApiError(
-      configurationError || 'Backend development configuration is missing.',
+      configurationError || environmentError || 'Backend configuration is missing.',
       0,
       'BACKEND_NOT_CONFIGURED',
     );

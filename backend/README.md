@@ -18,7 +18,8 @@ The backend has no service-role key, direct database access, property domain, co
 
 ```bash
 uv sync --python 3.12 --frozen
-uv run --env-file .env uvicorn trackmyprops_backend.main:app --app-dir src --reload
+uv run --env-file .env.development uvicorn trackmyprops_backend.main:app --app-dir src --reload
+uv run --env-file .env.production uvicorn trackmyprops_backend.main:app --app-dir src --host 0.0.0.0 --port 8000
 uv run ruff format --check .
 uv run ruff check .
 uv run mypy src tests
@@ -26,6 +27,10 @@ uv run pytest
 uv run python -m compileall -q src
 ```
 
-Copy `.env.example` to `.env` and replace the publishable-key placeholder with the local Supabase publishable key. Never use a secret or service-role key for this integration. The committed example permits only the explicit local frontend origins.
+Development loads only `.env.development`; production loads only `.env.production`. Committed templates are `.env.development.example` and `.env.production.example`. The development file contains the local Supabase URL and publishable key. The production file contains placeholders and must be completed before production use.
+
+The root start commands validate the selected backend file before starting Uvicorn, so production fails before process startup while required configuration remains a placeholder.
+
+Never use a secret or service-role key for this integration. Production rejects loopback Supabase URLs, and each environment has an explicit CORS origin list.
 
 The current endpoint contract is `../contracts/openapi/backend-v1.yaml`. Future public endpoints must be added to that source with their approved vertical slice.

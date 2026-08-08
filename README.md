@@ -113,12 +113,21 @@ make test
 make build
 ```
 
-After creating the local environment files, run the frontend and backend in separate terminals:
+Run development with the development environment files in separate terminals:
 
 ```bash
 make dev-backend
 make dev-frontend
 ```
+
+Run a local production-mode preview with the production environment files in separate terminals:
+
+```bash
+make prod-backend
+make prod-frontend
+```
+
+The development frontend normally uses `http://localhost:8081`. The production frontend preview builds the static web application and serves it on `http://localhost:4173`.
 
 `make format` rewrites supported source files. The other validation targets do not intentionally modify source files.
 
@@ -126,7 +135,13 @@ Each project README documents its native commands.
 
 ## Configuration
 
-The current identity slice uses the local Supabase API at `http://127.0.0.1:54321`. Copy `frontend/.env.example` and `backend/.env.example` to ignored `.env` files, then replace the publishable-key placeholder with the local publishable key printed by the Supabase CLI. Use the same local key in both files.
+Development commands load only `frontend/.env.development` and `backend/.env.development`. These ignored files currently target the local Supabase API at `http://127.0.0.1:54321` and use the same development publishable key.
+
+Production commands load only `frontend/.env.production` and `backend/.env.production`. These ignored files contain placeholders until production URLs and a production Supabase publishable key are approved. Production configuration rejects loopback Supabase URLs.
+
+Development and production start commands validate their selected files before starting. Production commands fail safely while any URL, publishable key, Terms URL, or deletion email remains a placeholder.
+
+Committed templates are provided as `.env.development.example` and `.env.production.example` in each project. Do not use `NEXT_PUBLIC_*`; Expo variables must use the `EXPO_PUBLIC_*` prefix.
 
 The publishable key is suitable for frontend use; secret and service-role keys are not. Never commit `.env` files, Supabase-generated temporary secrets, provider credentials, or production identifiers.
 

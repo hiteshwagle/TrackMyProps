@@ -16,15 +16,12 @@ Principles:
 
 # 2. Environment matrix
 
-Supported environments:
+The implemented application commands support:
 
-- local
-- ci
-- development
-- staging
-- production
+- development;
+- production.
 
-Every environment has its own configuration and secrets.
+CI and staging configuration remain future decisions. Every implemented environment has separate ignored runtime files and committed templates.
 
 ---
 
@@ -34,16 +31,11 @@ Public variables (EXPO_PUBLIC_*):
 
 ```text
 EXPO_PUBLIC_APP_ENV
-EXPO_PUBLIC_API_BASE_URL
+EXPO_PUBLIC_BACKEND_URL
 EXPO_PUBLIC_SUPABASE_URL
-EXPO_PUBLIC_SUPABASE_ANON_KEY
-EXPO_PUBLIC_SENTRY_DSN
-EXPO_PUBLIC_POSTHOG_KEY
-EXPO_PUBLIC_MAP_PROVIDER
-EXPO_PUBLIC_GOOGLE_MAPS_KEY
-EXPO_PUBLIC_BUILD_VERSION
-EXPO_PUBLIC_RUNTIME_VERSION
-EXPO_PUBLIC_FEATURE_FLAG_ENDPOINT
+EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY
+EXPO_PUBLIC_TERMS_URL
+EXPO_PUBLIC_ACCOUNT_DELETION_EMAIL
 ```
 
 Never expose:
@@ -58,20 +50,13 @@ Never expose:
 # 4. Backend
 
 ```text
-APP_ENV
-APP_NAME
-APP_VERSION
-LOG_LEVEL
-PORT
-DATABASE_URL
-SUPABASE_URL
-SUPABASE_SERVICE_ROLE_KEY
-JWT_SECRET
-JWT_ISSUER
-JWT_AUDIENCE
-CORS_ALLOWED_ORIGINS
-REDIS_URL (optional)
+TRACKMYPROPS_ENVIRONMENT
+TRACKMYPROPS_SUPABASE_URL
+TRACKMYPROPS_SUPABASE_PUBLISHABLE_KEY
+TRACKMYPROPS_FRONTEND_ORIGINS
 ```
+
+The publishable key is used only to verify user access tokens through Supabase Auth. No backend secret or service-role key is implemented.
 
 ---
 

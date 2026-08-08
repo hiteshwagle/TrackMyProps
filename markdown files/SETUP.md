@@ -729,16 +729,17 @@ Only create secrets for implemented integrations.
 Create:
 
 ```text
-frontend/.env.example
+frontend/.env.development.example
+frontend/.env.production.example
 ```
 
 Allowed public variables:
 
 ```text
 EXPO_PUBLIC_APP_ENV=
-EXPO_PUBLIC_API_BASE_URL=
+EXPO_PUBLIC_BACKEND_URL=
 EXPO_PUBLIC_SUPABASE_URL=
-EXPO_PUBLIC_SUPABASE_ANON_KEY=
+EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY=
 EXPO_PUBLIC_SENTRY_DSN=
 EXPO_PUBLIC_GOOGLE_MAPS_KEY=
 EXPO_PUBLIC_SUPPORT_EMAIL=
@@ -789,7 +790,8 @@ Add OAuth callbacks.
 Create:
 
 ```text
-backend/.env.example
+backend/.env.development.example
+backend/.env.production.example
 ```
 
 ## Application
@@ -1619,8 +1621,10 @@ data-platform
 Create:
 
 ```text
-frontend/.env
-backend/.env
+frontend/.env.development
+frontend/.env.production
+backend/.env.development
+backend/.env.production
 ai-platform/.env
 data-platform/.env
 ```

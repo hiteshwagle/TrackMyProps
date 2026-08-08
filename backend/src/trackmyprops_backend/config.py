@@ -20,6 +20,7 @@ class Settings:
 
     supabase_url: str
     supabase_publishable_key: str
+    environment: str = "development"
     frontend_origins: tuple[str, ...] = DEFAULT_FRONTEND_ORIGINS
 
     @classmethod
@@ -35,15 +36,23 @@ class Settings:
             supabase_publishable_key=values.get(
                 "TRACKMYPROPS_SUPABASE_PUBLISHABLE_KEY", ""
             ).strip(),
+            environment=values.get("TRACKMYPROPS_ENVIRONMENT", "").strip(),
             frontend_origins=origins or DEFAULT_FRONTEND_ORIGINS,
         )
 
     def supabase_configuration_error(self) -> str | None:
         """Return a safe configuration error without including configuration values."""
+        if self.environment not in {"development", "production"}:
+            return "The application environment must be development or production."
         if (
             not self.supabase_url
             or not self.supabase_publishable_key
-            or self.supabase_publishable_key == "your-local-publishable-key"
+            or self.supabase_publishable_key
+            in {
+                "your-development-publishable-key",
+                "your-local-publishable-key",
+                "your-production-publishable-key",
+            }
         ):
             return "Supabase authentication is not configured."
 
@@ -53,5 +62,7 @@ class Settings:
         if parsed_url.scheme == "https":
             return None
         if parsed_url.scheme == "http" and parsed_url.hostname in LOOPBACK_HOSTS:
+            if self.environment == "production":
+                return "Production Supabase configuration cannot use a loopback URL."
             return None
         return "The Supabase URL must use HTTPS unless it targets the local loopback interface."
