@@ -154,28 +154,22 @@ Allow users to create and understand an owned-property portfolio.
 ## User capabilities
 
 - sign up and sign in;
-- create household;
-- invite member;
 - add property;
-- record acquisition;
-- record ownership;
-- add loan;
-- record offset and redraw;
-- add rent and income;
-- add expenses;
-- add lease;
-- add valuation;
+- record bedrooms, bathrooms, car spaces, and property size;
+- record purchase date and purchase price;
+- record a current property value;
+- record an optional simple loan summary and derive principal paid;
+- add named rent and other income items;
+- add named expense items;
+- mark a property sold and move it to the archived list;
 - view property dashboard;
-- view portfolio dashboard;
-- view historical snapshots;
-- manage notification preferences.
+- view owner-only portfolio analytics.
 
 ## Backend capabilities
 
 - deterministic calculations;
-- property and portfolio snapshots;
-- cross-collateralised loan handling;
-- role and RLS enforcement;
+- property and portfolio totals;
+- owner-scoped authorisation and RLS enforcement;
 - audit events;
 - exports;
 - account deletion.
@@ -187,13 +181,14 @@ Allow users to create and understand an owned-property portfolio.
 - financial setup completion;
 - dashboard return rate;
 - calculation error rate;
-- cross-household security failures.
+- cross-account security failures.
 
 ## Exit criteria
 
 - a user can enter a complete property;
 - property and portfolio metrics reconcile;
 - missing values do not become zero;
+- another authenticated account cannot access the user's records;
 - calculation tests pass;
 - export and deletion work;
 - core journeys pass end to end.

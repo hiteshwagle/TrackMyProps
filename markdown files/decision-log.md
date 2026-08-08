@@ -742,6 +742,156 @@ Initial product assumptions, terminology, datasets, calculations, legal notices,
 
 ---
 
+# ADR-021 — Use an owner-only portfolio model for the MVP
+
+**Status:** Accepted
+
+**Date:** 2026-08-08
+
+**Owners:** Product and Architecture
+
+## Context
+
+The broader product documentation supports household collaboration, invitations, and multiple roles. The MVP needs a smaller path to property portfolio value before collaboration is validated.
+
+## Decision
+
+Each authenticated account privately owns its own portfolio. The only MVP application role is owner.
+
+Do not implement households, memberships, invitations, owner transfer, or admin, member, viewer, and advisor roles in the MVP. Owner-scoped records use the authenticated user ID and retain backend ownership checks, RLS, and negative isolation tests.
+
+Detailed scope is defined in `mvp-owner-portfolio-scope.md`.
+
+## Rationale
+
+- substantially smaller identity and permission surface;
+- faster delivery of the core portfolio workflow;
+- fewer security-sensitive collaboration states;
+- no evidence yet that sharing is necessary for the first release.
+
+## Alternatives
+
+- full household and role model before property features;
+- one hardcoded global application account;
+- no database RLS because only one role exists.
+
+## Consequences
+
+- multiple registered accounts may exist, but their portfolios remain isolated;
+- a role or membership table is unnecessary for the MVP;
+- simple owner-based RLS remains mandatory;
+- household and collaboration specifications are deferred rather than deleted;
+- adding sharing later requires a new ADR, migration plan, contract change, and security review.
+
+## Risks
+
+- owner IDs could become embedded broadly and require an expand-and-contract migration when collaboration is added;
+- language in older roadmap and permissions documents may still describe post-MVP households;
+- “single user” could be misread as permission to hardcode one global identity.
+
+## Review trigger
+
+Validated demand for shared portfolios, partner access, household membership, or professional collaboration.
+
+---
+
+# ADR-022 — Use the remote Supabase development environment for MVP development
+
+**Status:** Superseded by ADR-023
+
+**Date:** 2026-08-08
+
+**Owners:** Backend and Operations
+
+## Context
+
+A Supabase account and remote development environment already exist. The MVP owner does not require a local Supabase runtime for the current development workflow.
+
+## Decision
+
+Use the approved remote Supabase development project for development. Do not require local Supabase services for the MVP workflow.
+
+Schema changes remain versioned in repository migrations. Production configuration and credentials remain out of scope.
+
+## Rationale
+
+- the development environment already exists;
+- avoids local service setup not currently needed by the owner;
+- keeps the workflow focused on the MVP.
+
+## Alternatives
+
+- require local Supabase for every developer;
+- use the remote development project for destructive CI resets;
+- create production infrastructure immediately.
+
+## Consequences
+
+- development credentials stay outside the repository;
+- project-link and generated temporary files remain ignored;
+- schema changes must be tested against the approved remote environment;
+- a separate isolated test environment or equivalent mechanism is required before destructive or parallel CI database testing;
+- current Supabase documentation and CLI behaviour must be verified before schema changes.
+
+## Risks
+
+- shared remote state can make tests order-dependent;
+- destructive reset or fixture cleanup could affect another development session;
+- CI cannot safely depend on a personal development credential or mutable shared state;
+- development data must remain synthetic.
+
+## Review trigger
+
+Additional developers, parallel CI, staging deployment, destructive migration testing, or production-readiness work.
+
+---
+
+# ADR-023 — Use local Supabase for active MVP development
+
+**Status:** Accepted
+
+**Date:** 2026-08-08
+
+**Owners:** Backend, Frontend, and Operations
+
+## Context
+
+A local Supabase runtime is now available at `http://127.0.0.1:54321`. Local identity integration and later migration/RLS testing need an isolated development service that does not mutate a shared remote project.
+
+## Decision
+
+Use the local Supabase runtime for active frontend and backend MVP development. The frontend authenticates directly with Supabase Auth using the local publishable key. The backend verifies each bearer token through Supabase Auth and never receives a frontend token as proof without provider validation.
+
+Keep local keys in ignored `.env` files. Do not commit project keys, generated local secrets, or local state. Do not use a secret or service-role key in the frontend. Remote development, CI, staging, and production environments remain separate decisions.
+
+## Rationale
+
+- isolates active development from shared remote data;
+- enables repeatable migration and RLS testing later;
+- keeps Supabase Auth behaviour close to the application during development;
+- avoids adding production infrastructure or credentials.
+
+## Consequences
+
+- developers must run or connect to the local Supabase service;
+- loopback HTTP is allowed only for local development; non-local services require HTTPS;
+- local publishable configuration is required in ignored frontend and backend `.env` files;
+- physical devices will need a separately approved reachable development URL rather than `127.0.0.1`;
+- CI still needs an isolated Supabase test lifecycle before database tests are enabled.
+
+## Risks
+
+- the local Supabase stack is not production hardened;
+- local configuration can drift unless schema and Auth changes are documented and versioned;
+- accidentally using secret or service-role keys in public variables would bypass the intended trust boundary;
+- a running local service is not currently verified by repository CI.
+
+## Review trigger
+
+Remote collaboration, physical-device testing, CI database tests, staging deployment, or production-readiness work.
+
+---
+
 # 5. Decisions requiring future ADRs
 
 Create additional ADRs before finalising:
@@ -806,6 +956,9 @@ Review:
 | ADR-018 | Layered access decisions | Accepted |
 | ADR-019 | No general training on user data | Accepted |
 | ADR-020 | Australia-first product | Accepted |
+| ADR-021 | Owner-only portfolio MVP | Accepted |
+| ADR-022 | Remote Supabase development environment | Superseded by ADR-023 |
+| ADR-023 | Local Supabase development environment | Accepted |
 
 ---
 

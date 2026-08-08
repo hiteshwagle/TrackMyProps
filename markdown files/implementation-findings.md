@@ -10,6 +10,12 @@ This document records the findings from the pre-implementation review of TrackMy
 
 This review does not approve a commercial provider, production environment, credential, legal position, or product integration. It does not implement product business logic.
 
+### 1.1 MVP scope amendment — 8 August 2026
+
+ADR-021 and `mvp-owner-portfolio-scope.md` now define the MVP as one private owner per authenticated account. Households, memberships, invitations, and multiple roles are deferred. This does not remove the account security boundary: backend ownership checks, owner-based RLS, and cross-account denial tests remain mandatory.
+
+ADR-023 accepts the local Supabase runtime for active development and supersedes ADR-022's remote-only workflow. Test, staging, production, and CI isolation remain separate unresolved environment decisions. This amendment supersedes household-oriented implementation recommendations below where they concern the MVP; the original audit evidence remains relevant to the broader post-MVP design.
+
 ## 2. Audit basis and document authority
 
 The review used the following working order when a temporary disposition was required:
@@ -107,7 +113,7 @@ It may authenticate through approved Supabase client capabilities and call the p
 
 ### 5.3 Backend
 
-The Python FastAPI backend is the authoritative business layer. It owns authentication validation, household authorisation, domain records, deterministic financial calculations, scenarios, approvals, entitlements, audit events, notifications, external communication sending, exports, and deletion workflows.
+The Python FastAPI backend is the authoritative business layer. For the MVP, it owns authentication validation, owner authorisation, domain records, deterministic financial calculations, audit events, exports, and deletion workflows. The broader architecture also assigns it future household authorisation, scenarios, approvals, entitlements, notifications, and external communication sending.
 
 Public APIs use `/api/v1`. Internal tools use narrowly scoped `/internal/v1` routes. Route handlers should remain thin; business rules belong in small typed functions or focused services, with explicit transactions and SQLAlchemy 2 persistence.
 
@@ -160,7 +166,7 @@ Shared contracts cover errors, money, rates, pagination, idempotency, events, ex
 
 ### 5.9 Security and privacy model
 
-Household-scoped access requires defence in depth: verified identity, backend authorisation, database RLS, explicit permission and entitlement checks, and negative tests. Internal service calls require distinct authenticated service identities. Storage is private by default. Secrets are externalised. AI memory and caches are tenant scoped. Deletion must cover derived data, exports, documents, embeddings, AI state, provider copies where applicable, and restoration from backups.
+Owner-scoped MVP access requires defence in depth: verified identity, backend ownership checks, database RLS, and negative cross-account tests. Future shared access additionally requires explicit permissions and entitlements. Internal service calls require distinct authenticated service identities. Storage is private by default. Secrets are externalised. AI memory and caches are tenant scoped. Deletion must cover derived data, exports, documents, embeddings, AI state, provider copies where applicable, and restoration from backups.
 
 ## 6. Contradictions and unresolved document conflicts
 
@@ -168,21 +174,21 @@ Household-scoped access requires defence in depth: verified identity, backend au
 |---|---|---|---|
 | Frontend language | `AGENTS.md` technology decisions require TypeScript. `README.md` section 2, `architecture.md` section 3, `coding-standards.md` section 5, and `SKILL.md` describe JavaScript. | Scaffold, linting, contracts, and test configuration cannot be selected consistently. | Use strict TypeScript for the scaffold. Record an ADR or documentation correction before frontend feature work. |
 | Repository model | `AGENTS.md`, `decision-log.md` ADR-016, and `deployment-and-devops.md` section 7 require an initial monorepo. `architecture.md` section 33 refers to four repositories or deployable projects. | Could lead to repository splitting, duplicate CI, and contract drift. | One monorepo with four independently deployable projects. Interpret the architecture wording as four projects, not four Git repositories. |
-| Phase 0 scope | `AGENTS.md` separates documentation audit, scaffold, CI, contracts, identity/RLS, and the first feature slice. `PROJECT_ROADMAP.md` section 5 includes deployed environments, authentication, household isolation, RLS, audit, privacy artefacts, and shared contracts in Phase 0. | The next task could expand from a small scaffold into product and infrastructure work. | The next approved Phase 0 task is scaffold-only. Contracts and household security remain separately approved later stages. |
+| Phase 0 scope | `AGENTS.md` separates documentation audit, scaffold, CI, contracts, identity/RLS, and the first feature slice. `PROJECT_ROADMAP.md` section 5 includes deployed environments, authentication, household isolation, RLS, audit, privacy artefacts, and shared contracts in Phase 0. | The next task could expand from a small scaffold into product and infrastructure work. | The approved Phase 0 task was scaffold-only. Contracts and owner isolation remain separately approved later stages under ADR-021. |
 | AI/data sequence | `AGENTS.md` stages 9-10 place the first AI foundation before the data-platform foundation. `architecture.md` section 37 puts data before AI. `PROJECT_ROADMAP.md` places AI analysis before data enrichment. `database.md` section 40 puts the data platform after AI, discovery, and learning. | Teams could build agents without data or build broad data infrastructure before portfolio value exists. | Follow the small sequence in section 13 of this document. Introduce one AI path only after portfolio calculations are stable, then one approved public-data path. |
-| RLS scope | `AGENTS.md` and `README.md` require database RLS for every household-scoped resource. `architecture.md` section 8, `security.md` section 7, and `backend_SKILL.md` section 8.2 frame RLS around direct Supabase client access. | Backend-only tables could be left without database isolation, weakening defence in depth. | Require RLS for household-scoped tables before property features. Every table in an exposed schema must have RLS. Private schemas still need explicit roles and should use RLS where it materially protects tenant data. |
-| RLS timing | `database.md` section 40 lists RLS in final hardening, while `AGENTS.md` requires household isolation before properties and the roadmap describes RLS as foundational. | Security could be retrofitted after data and features exist. | Implement and test household RLS with the identity foundation, not during final hardening. Hardening may review or extend it, not introduce it for the first time. |
+| RLS scope | `AGENTS.md` and `README.md` require database RLS for tenant-scoped resources. `architecture.md` section 8, `security.md` section 7, and `backend_SKILL.md` section 8.2 frame RLS around direct Supabase client access. | Backend-only tables could be left without database isolation, weakening defence in depth. | Require owner-based RLS for MVP property data before property features. Every table in an exposed schema must have RLS. Private schemas still need explicit roles and should use RLS where it materially protects user data. |
+| RLS timing | `database.md` section 40 lists RLS in final hardening, while `AGENTS.md` requires tenant isolation before properties and the roadmap describes RLS as foundational. | Security could be retrofitted after data and features exist. | Implement and test owner RLS with the identity foundation, not during final hardening. Hardening may review or extend it, not introduce it for the first time. |
 | RLS helper functions | `security.md` section 7.2 suggests carefully reviewed security-definer membership helpers. Such functions can bypass RLS and are dangerous when executable from exposed schemas. | A convenience helper could create a broad privilege-escalation path. | Prefer invoker-safe policies. Any necessary security-definer helper requires a non-exposed schema, fixed search path, revoked default execute privileges, explicit identity checks, security review, and denial tests. |
 | API response envelope | `contracts.md` sections 8-9 suggests a `data`/`meta` envelope. `api-design.md` section 8 permits direct single-resource responses. `backend_SKILL.md` section 7.3 uses an envelope only “where it adds value.” | Generated clients and contract tests cannot assume one response shape. | Resolve in the shared-contract stage. Do not create domain endpoints before selecting one convention per API. |
 | Correlation field in errors | `contracts.md` and `api-design.md` require `trace_id`; `backend_SKILL.md` error example uses `request_id`. Observability requires both request and trace identifiers. | Client error handling and operational correlation may diverge. | Define both semantics in the shared error contract and select the required client-visible field before public endpoints are added. |
 | Pagination | `contracts.md` supports page pagination for small user collections and cursor pagination for streams. `api-design.md` lists property and notification uses for page pagination. `backend_SKILL.md` permits offset pagination only for small stable administrative lists. | Collection endpoints may be incompatible or inefficient. | Defer collection pagination until the shared-contract stage; document the chosen strategy per endpoint. |
 | Health paths | `api-design.md` section 16 places backend health at `/health` and AI health at `/internal/v1/health`. `deployment.md` section 29 says both services expose `/health` and `/ready`. | Probes, routing, and access controls may disagree. | Use backend `/health` and `/ready`; recommend AI `/internal/v1/health` and `/internal/v1/ready`, with a deployment probe mapping if required. Approve the exact shape before scaffold implementation. |
 | Private upload flow | `connections.md` allows frontend-to-Supabase Storage and `contracts.md` permits multipart uploads. Other documents describe backend-issued signed upload URLs and prohibit arbitrary paths. | A frontend could gain broader object access or bypass validation. | Use backend-authorised, short-lived upload instructions for private files. Finalise whether the token is a Supabase signed upload URL or another bounded mechanism before document features. |
-| Supabase environment isolation | `architecture.md` allows separate Supabase projects or isolated schemas. `security.md` section 27 requires separate Supabase projects. | Schema-only isolation could mix credentials, Auth users, Storage, or Realtime across environments. | Local and CI may be ephemeral; development, staging, and production should use separate projects unless a reviewed ADR demonstrates equivalent isolation. |
+| Supabase environment isolation | `architecture.md` allows separate Supabase projects or isolated schemas. `security.md` section 27 requires separate Supabase projects. | Schema-only isolation could mix credentials, Auth users, Storage, or Realtime across environments. | ADR-022 accepts the existing remote development project without a local runtime. A separate test mechanism and staging/production topology still require approval before those environments are used. |
 | Migration ownership | `database.md` describes one shared PostgreSQL architecture. Backend and data project skills each assign Alembic ownership to their schemas, while Supabase migrations are also required. | Multiple migration histories could conflict or apply out of order. | Before the first schema change, assign one migration history and deployment order per schema. Never let two tools own the same object. |
 | Event transport | `connections.md`, `event-catalogue.md`, and `decision-log.md` leave Pub/Sub versus an authenticated endpoint unresolved while other documents assume events and cache invalidation. | Infrastructure and retry semantics could be implemented speculatively. | Use no external event transport in the scaffold. Retain versioned event contracts and an outbox as later design requirements. |
 | Progress delivery | Documents permit Supabase Realtime, backend event streams, polling, callbacks, or another approved mechanism. | Frontend, backend, and AI platform could implement incompatible lifecycle flows. | Use ordinary status polling for the first execution path unless an ADR selects a realtime mechanism based on demonstrated need. |
-| MVP definition | `PROJECT_ROADMAP.md` and `roadmap.md` use different phase numbering and breadth; the latter describes an MVP spanning multiple substantial phases. | Scope and exit criteria are ambiguous. | Treat the first MVP as sequential vertical slices, beginning with sign-in, household, create property, and view property after the security foundation. Do not implement the full roadmap as one MVP task. |
+| MVP definition | `PROJECT_ROADMAP.md` and `roadmap.md` use different phase numbering and breadth; the latter describes an MVP spanning multiple substantial phases. | Scope and exit criteria are ambiguous. | ADR-021 resolves the initial journey as owner-only: sign in, create property, and view property after owner isolation. Deliver subsequent income, expense, and analytics capabilities as separate slices. |
 
 ## 7. Duplication and source-of-truth risks
 
@@ -246,14 +252,13 @@ Provider names and environment-variable examples in the repository are evaluatio
 
 ### 10.1 Security
 
-Before household-scoped product data is implemented:
+Before owner-scoped MVP product data is implemented:
 
-- finalise the initial roles and permission matrix;
 - verify Supabase JWTs server-side without trusting user-editable metadata;
 - define session revocation and sensitive-operation reauthentication;
 - implement backend authorisation and database RLS together;
-- test owner, authorised member, viewer, inactive member, different household, and unauthenticated access;
-- prevent household-ID and cross-household foreign-key manipulation;
+- test owner access, different authenticated account denial, unauthenticated denial, owner-ID reassignment denial, and cross-owner child-row denial;
+- prevent owner-ID and cross-account foreign-key manipulation;
 - define exposed versus private schemas and explicit grants;
 - review views and privileged functions so they do not bypass RLS accidentally;
 - keep Storage private and issue only bounded upload/download access;
@@ -270,7 +275,7 @@ Before collecting real user data:
 - verify the current Australian legal and regulatory claims in the documentation;
 - approve collection purposes and notices;
 - classify data sensitivity and retention for every implemented store;
-- define access, correction, export, account deletion, household deletion, and shared-record handling;
+- define access, correction, export, account deletion, and owner-record deletion; shared-record handling is deferred with collaboration;
 - ensure deletion covers storage, derived values, AI memory, cache, embeddings, exports, provider copies, and backup restoration;
 - approve data residency, overseas recipients, subprocessors, provider training/retention terms, analytics, and support access;
 - perform privacy impact assessments for high-risk AI, documents, predictions, communications, profiling, and new data sources;
@@ -298,8 +303,8 @@ Before a production agent is implemented:
 - restrict tools to narrow backend operations;
 - keep financial calculations deterministic and backend-owned;
 - validate structured outputs and expose evidence, assumptions, freshness, confidence, missing information, risks, and limitations;
-- isolate cache and memory by user, household, property, conversation, purpose, and version as applicable;
-- implement prompt-injection, malicious-document, tool-abuse, data-leakage, and cross-household tests;
+- isolate cache and memory by user, property, conversation, purpose, and version as applicable;
+- implement prompt-injection, malicious-document, tool-abuse, data-leakage, and cross-account tests;
 - define measurable release thresholds, fallback behaviour, rapid disablement, cost limits, and incident handling;
 - require exact human approval for consequential communication and prohibit AI sending.
 
@@ -307,11 +312,10 @@ Before a production agent is implemented:
 
 The initial product should not be built as one broad MVP. It should be delivered as small vertical slices.
 
-The first product journey, only after the household security foundation, is:
+The first product journey, only after the owner isolation foundation, is:
 
 ```text
 sign in
-create household
 create property
 view property
 ```
@@ -319,7 +323,7 @@ view property
 Explicitly out of scope for the documentation audit and scaffold:
 
 - product tables or migrations;
-- authentication and household implementation;
+- authentication and owner-isolation implementation;
 - property, loan, income, expense, lease, valuation, document, billing, or communication logic;
 - authoritative financial calculations;
 - AI agents, prompts, live model calls, vector stores, or embeddings;
@@ -369,10 +373,10 @@ The scaffold should contain:
 2. **Create the repository scaffold.** Add minimal project shells, tooling, documentation, health/readiness, and smoke tests.
 3. **Establish CI.** Add path-aware format, lint, type, test, build, secret, and dependency checks.
 4. **Define the first shared contracts.** Health, error, money, rate, pagination, idempotency, event envelope, and API version metadata.
-5. **Build identity and household security.** Profile, household, membership, initial roles, RLS, audit event, outbox, and complete denial tests.
-6. **Deliver the first vertical slice.** Sign in, create household, create property, and view property across database, backend, contracts, frontend, tests, security, and observability.
-7. **Add the financial foundation.** Acquisition, ownership, loan, valuation, equity, and LVR using versioned `Decimal` calculations.
-8. **Add income and expenses.** Rental income, expenses, cash flow, yield, and property/portfolio dashboards.
+5. **Build owner identity and isolation.** Profile, owner-based RLS, audit event, outbox, and complete cross-account denial tests. Do not add household or role tables.
+6. **Deliver the first vertical slice.** Sign in, create property, and view property across database, backend, contracts, frontend, tests, security, and observability.
+7. **Add property financial inputs.** Purchase date and price, user-entered current value, and the simple loan summary defined in `mvp-owner-portfolio-scope.md`, using explicit money and rate contracts.
+8. **Add named income and expenses, then analytics.** Use child line items and versioned deterministic calculations as defined in `mvp-owner-portfolio-scope.md`.
 9. **Add one AI path.** Agent/execution registry, one Finance Agent, backend calculation tools, structured validation, progress, evaluations, and cost tracking.
 10. **Add one data path.** Source/licence registry and one approved official public source through raw, canonical, curated, quality, lineage, and publication.
 
@@ -390,6 +394,6 @@ Each step requires separate acceptance criteria and approval. Do not start a lat
 
 ## 15. Conclusion
 
-The intended architecture has strong boundaries and safety principles, but the documentation currently describes a target platform much larger than a safe first implementation. The correct next step is the minimal scaffold in `phase-0-implementation-plan.md`, followed by shared contracts and household isolation. Product features, AI, data providers, and production infrastructure must remain deferred until their prerequisites and evidence exist.
+The intended architecture has strong boundaries and safety principles, but the documentation describes a target platform much larger than the owner-only MVP. The scaffold is followed by shared contracts and owner isolation, then the property vertical slice described in `mvp-owner-portfolio-scope.md`. AI, data providers, collaboration, and production infrastructure remain deferred until their prerequisites and evidence exist.
 
 No commercial or external provider has been selected. All provider, legal, licensing, privacy, residency, pricing, and access claims require current evidence and the appropriate specialist or contract review before integration.

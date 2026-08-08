@@ -1,6 +1,6 @@
 # TrackMyProps
 
-TrackMyProps is an Australia-focused property-investment platform. This repository currently contains the Phase 0 engineering scaffold only.
+TrackMyProps is an Australia-focused property-investment platform. This repository contains the Phase 0 scaffold and the first owner-only identity integration.
 
 No property, loan, billing, provider, AI-agent, or other product business logic is implemented.
 
@@ -25,15 +25,15 @@ TrackMyProps is a monorepo. The four application projects are kept separate so t
 
 ### `frontend`
 
-The user-facing Expo React Native application, written in strict TypeScript. It will authenticate users, call the backend API, and render portfolio workflows. It must not contain authoritative financial calculations, permission decisions, database credentials, service-role keys, AI-provider secrets, or direct commercial-provider integrations.
+The user-facing Expo React Native application, written in strict TypeScript. It authenticates users through Supabase and will call the backend API for portfolio workflows. It must not contain authoritative financial calculations, permission decisions, database credentials, service-role keys, AI-provider secrets, or direct commercial-provider integrations.
 
-Phase 0 contains one minimal screen, frontend linting and type checking, a component test, and an Expo web-export smoke build. It does not yet include navigation, authentication, API clients, or product features.
+The current web-first slice contains email/password authentication against local Supabase, protected bottom navigation, Dashboard, Properties, Analytics, and Settings shells, linked Terms acceptance, a manual deletion-request email action, and an authenticated current-user call to the backend. Property persistence and calculations remain deferred until their contracts, owner-based RLS, migration, and backend endpoints exist.
 
 ### `backend`
 
-The Python FastAPI service that will be the authoritative application and business layer. It will eventually own authentication validation, authorisation, household access, property and financial records, deterministic calculations, approvals, notifications, billing entitlements, communications, audit events, exports, and deletion workflows.
+The Python FastAPI service that will be the authoritative application and business layer. It will eventually own authentication validation, owner authorisation, property and financial records, deterministic calculations, audit events, exports, and deletion workflows. Household access and collaboration remain post-MVP.
 
-Phase 0 exposes only `GET /health` and `GET /ready`. There is no database, authentication, provider integration, or business logic.
+The backend exposes `GET /health`, dependency-aware `GET /ready`, and authenticated `GET /api/v1/me`. It validates bearer tokens through Supabase Auth using the frontend-safe publishable key. It has no service-role key, direct database access, property logic, financial calculations, or commercial provider integration.
 
 ### `ai-platform`
 
@@ -55,7 +55,7 @@ The shared foundation defines health, API-version metadata, errors, money, rates
 
 ### `supabase`
 
-The migration boundary for the future Supabase PostgreSQL schema and database security policies. Household-scoped tables will require row-level security and automated cross-household denial tests.
+The migration boundary for the future Supabase PostgreSQL schema and database security policies. Owner-scoped MVP tables will require row-level security and automated cross-account denial tests.
 
 Phase 0 contains no SQL migration, product table, Auth configuration, Storage policy, Realtime configuration, Edge Function, project link, or credential. Generated Supabase temporary state is ignored by Git.
 
@@ -113,16 +113,23 @@ make test
 make build
 ```
 
+After creating the local environment files, run the frontend and backend in separate terminals:
+
+```bash
+make dev-backend
+make dev-frontend
+```
+
 `make format` rewrites supported source files. The other validation targets do not intentionally modify source files.
 
 Each project README documents its native commands.
 
 ## Configuration
 
-No environment variables, live services, or credentials are required for Phase 0. Project `.env.example` files intentionally contain comments only.
+The current identity slice uses the local Supabase API at `http://127.0.0.1:54321`. Copy `frontend/.env.example` and `backend/.env.example` to ignored `.env` files, then replace the publishable-key placeholder with the local publishable key printed by the Supabase CLI. Use the same local key in both files.
 
-Never commit `.env` files, Supabase-generated temporary secrets, provider credentials, or production identifiers.
+The publishable key is suitable for frontend use; secret and service-role keys are not. Never commit `.env` files, Supabase-generated temporary secrets, provider credentials, or production identifiers.
 
 ## Next phase
 
-The next separately approved task is identity and household authorisation. Database RLS and cross-household denial tests must pass before property features.
+The next separately approved task is owner identity and per-account data isolation. Simple owner-based RLS and cross-account denial tests must pass before property features. See `markdown files/mvp-owner-portfolio-scope.md`.

@@ -3,7 +3,7 @@ contracts:
   - contract_id: api.backend
     contract_type: openapi
     major_version: 1
-    current_version: 1.0.0
+    current_version: 1.1.0
     status: active
     owner: trackmyprops-engineering
     consumers:
@@ -115,6 +115,18 @@ contracts:
     introduced_at: 2026-08-03
     schema_path: json-schema/errors/error-response.schema.json
     documentation: README.md
+  - contract_id: identity.current-user
+    contract_type: json-schema
+    major_version: 1
+    current_version: 1.0.0
+    status: active
+    owner: trackmyprops-engineering
+    consumers:
+      - frontend
+      - backend
+    introduced_at: 2026-08-08
+    schema_path: json-schema/identity/current-user.schema.json
+    documentation: README.md
   - contract_id: events.envelope
     contract_type: json-schema
     major_version: 1
@@ -128,4 +140,3 @@ contracts:
     introduced_at: 2026-08-03
     schema_path: events/common.schema.json
     documentation: README.md
-

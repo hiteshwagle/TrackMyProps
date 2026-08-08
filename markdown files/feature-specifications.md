@@ -42,6 +42,20 @@ security.md
 testing-strategy.md
 ```
 
+## 1.1 Current MVP scope override
+
+The accepted MVP is owner-only. `mvp-owner-portfolio-scope.md` and ADR-021 override household, invitation, membership, and multi-role requirements for the MVP only.
+
+For the MVP:
+
+- each authenticated account privately owns its records;
+- the only application role is owner;
+- household management and collaboration features are deferred;
+- property income and expenses are owner-defined child line items, not dynamic database columns;
+- simple owner-based RLS and cross-account denial tests remain mandatory.
+
+The broader sections below remain the post-MVP reference unless a later ADR supersedes them.
+
 ---
 
 # 2. Feature specification template

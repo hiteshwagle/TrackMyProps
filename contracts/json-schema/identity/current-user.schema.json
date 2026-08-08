@@ -1,0 +1,28 @@
+{
+  "$id": "urn:trackmyprops:contracts:identity:current-user:1.0.0",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "The identity represented by a backend-verified Supabase access token.",
+  "properties": {
+    "email": {
+      "format": "email",
+      "maxLength": 320,
+      "type": "string"
+    },
+    "id": {
+      "format": "uuid",
+      "type": "string"
+    },
+    "name": {
+      "maxLength": 200,
+      "type": ["string", "null"]
+    },
+    "phone": {
+      "maxLength": 32,
+      "type": ["string", "null"]
+    }
+  },
+  "required": ["id", "email", "name", "phone"],
+  "title": "CurrentUser",
+  "type": "object"
+}

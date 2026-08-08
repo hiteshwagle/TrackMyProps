@@ -3,10 +3,15 @@
     "name": "TrackMyProps",
     "slug": "trackmyprops",
     "version": "0.0.0",
+    "scheme": "trackmyprops",
     "orientation": "portrait",
     "platforms": ["ios", "android", "web"],
     "web": {
       "bundler": "metro"
+    },
+    "plugins": ["expo-router"],
+    "experiments": {
+      "typedRoutes": true
     }
   }
 }

@@ -38,6 +38,9 @@ EXAMPLE_SCHEMAS = {
     EXAMPLE_ROOT / "health" / "backend-health.json": (
         SCHEMA_ROOT / "common" / "health-response.schema.json"
     ),
+    EXAMPLE_ROOT / "identity" / "current-user.json": (
+        SCHEMA_ROOT / "identity" / "current-user.schema.json"
+    ),
     EXAMPLE_ROOT / "pagination" / "cursor.json": (
         SCHEMA_ROOT / "common" / "pagination.schema.json"
     ),
@@ -49,7 +52,7 @@ OPENAPI_PATHS = {
         "/internal/v1/health",
         "/internal/v1/ready",
     },
-    ROOT / "openapi" / "backend-v1.yaml": {"/health", "/ready"},
+    ROOT / "openapi" / "backend-v1.yaml": {"/health", "/ready", "/api/v1/me"},
 }
 
 
@@ -125,7 +128,12 @@ def test_openapi_health_examples_match_shared_schema() -> None:
     for spec_path in OPENAPI_PATHS:
         specification, _ = read_from_filename(str(spec_path))
         paths = cast(Mapping[str, Any], specification["paths"])
-        for path_item in paths.values():
+        operational_paths = {
+            path: path_item
+            for path, path_item in paths.items()
+            if path in {"/health", "/ready", "/internal/v1/health", "/internal/v1/ready"}
+        }
+        for path_item in operational_paths.values():
             operation = cast(Mapping[str, Any], path_item)["get"]
             responses = cast(Mapping[str, Any], operation)["responses"]
             response = cast(Mapping[str, Any], responses)["200"]

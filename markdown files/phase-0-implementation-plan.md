@@ -353,11 +353,11 @@ Phase 0 does not resolve:
 - final public response-envelope and error-correlation contracts;
 - collection pagination policy;
 - database migration ownership and schema deployment order;
-- initial household roles and RLS policy design;
+- exact owner-scoped RLS policy and test implementation; the MVP role model itself is resolved as owner-only by ADR-021;
 - direct versus signed Supabase Storage upload mechanics;
-- Supabase project topology for non-local environments;
+- Supabase project topology for test, staging, and production; ADR-022 accepts the existing remote development project and removes a local-runtime requirement;
 - realtime, event transport, background execution, or cache technology;
 - any commercial, public-data, model, email, billing, notification, maps, analytics, monitoring, or OAuth provider;
 - production region, budget, SLO, RPO, RTO, subscription model, legal position, or privacy approval.
 
-The recommended next task after scaffold approval is the shared-contract foundation. Identity and household security, including RLS and cross-household denial tests, follows before any property feature.
+The recommended next task after scaffold approval is the shared-contract foundation. Owner identity and per-account isolation, including simple RLS and cross-account denial tests, follows before any property feature. The accepted MVP scope is defined in `mvp-owner-portfolio-scope.md`.

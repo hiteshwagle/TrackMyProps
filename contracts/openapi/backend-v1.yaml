@@ -1,8 +1,8 @@
 openapi: 3.1.0
 info:
   title: TrackMyProps Backend API
-  version: 1.0.0
-  description: Phase 0 operational endpoints for the public backend service.
+  version: 1.1.0
+  description: Operational endpoints and the first authenticated identity endpoint.
 x-api-major-version: v1
 paths:
   /health:
@@ -32,7 +32,7 @@ paths:
         - Operations
       responses:
         "200":
-          description: The dependency-free backend scaffold is ready.
+          description: Supabase Auth is configured and reachable.
           content:
             application/json:
               schema:
@@ -43,6 +43,54 @@ paths:
                     service: backend
                     status: ready
                     version: 0.0.0
+        "503":
+          description: Supabase Auth is not configured or reachable.
+          content:
+            application/json:
+              schema:
+                $ref: ../json-schema/errors/error-response.schema.json
+  /api/v1/me:
+    get:
+      operationId: getCurrentUser
+      summary: Retrieve the authenticated user
+      tags:
+        - Identity
+      security:
+        - supabaseBearer: []
+      responses:
+        "200":
+          description: The identity represented by the verified access token.
+          content:
+            application/json:
+              schema:
+                $ref: ../json-schema/identity/current-user.schema.json
+              examples:
+                owner:
+                  value:
+                    email: owner@example.com
+                    id: e8cf2dbf-463e-485f-880d-cdb828749979
+                    name: Owner Example
+                    phone: null
+        "401":
+          description: The access token is missing, invalid, or expired.
+          content:
+            application/json:
+              schema:
+                $ref: ../json-schema/errors/error-response.schema.json
+        "503":
+          description: Supabase Auth could not verify the access token.
+          content:
+            application/json:
+              schema:
+                $ref: ../json-schema/errors/error-response.schema.json
+components:
+  securitySchemes:
+    supabaseBearer:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
 tags:
   - name: Operations
     description: Non-sensitive service health and readiness checks.
+  - name: Identity
+    description: Identity derived from backend-verified Supabase access tokens.

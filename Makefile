@@ -1,7 +1,7 @@
 UV ?= uv
 PYTHON_VERSION ?= 3.12
 
-.PHONY: install format format-check lint typecheck test build check
+.PHONY: install dev-frontend dev-backend format format-check lint typecheck test build check
 
 install:
 	cd frontend && npm ci
@@ -9,6 +9,12 @@ install:
 	cd ai-platform && $(UV) sync --python $(PYTHON_VERSION) --frozen
 	cd data-platform && $(UV) sync --python $(PYTHON_VERSION) --frozen
 	cd contracts && $(UV) sync --python $(PYTHON_VERSION) --frozen
+
+dev-frontend:
+	cd frontend && npm run web
+
+dev-backend:
+	cd backend && $(UV) run --env-file .env uvicorn trackmyprops_backend.main:app --app-dir src --reload
 
 format:
 	cd frontend && npm run format

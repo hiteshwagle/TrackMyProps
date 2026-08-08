@@ -1,16 +1,16 @@
 [project]
 name = "trackmyprops-backend"
 version = "0.0.0"
-description = "TrackMyProps Phase 0 backend service shell"
+description = "TrackMyProps authoritative backend API"
 requires-python = ">=3.12,<3.13"
 dependencies = [
     "fastapi>=0.115,<1",
+    "httpx2>=2.9,<3",
     "uvicorn>=0.34,<1",
 ]
 
 [dependency-groups]
 dev = [
-    "httpx2>=2.9,<3",
     "mypy>=1.15,<2",
     "pytest>=8.3,<10",
     "ruff>=0.11,<1",

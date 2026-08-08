@@ -1,8 +1,10 @@
 # Supabase
 
-This directory reserves the migration boundary for the future TrackMyProps Supabase PostgreSQL schema.
+This directory is the migration boundary for the TrackMyProps Supabase PostgreSQL schema.
 
-Phase 0 does not contain a database migration, RLS policy, Auth configuration, Storage configuration, Realtime configuration, Edge Function, project link, or credential.
+Active development uses the local Supabase API at `http://127.0.0.1:54321`. The frontend uses Supabase Auth directly; the backend verifies user bearer tokens through Supabase Auth. This repository still contains no product migration, RLS policy, Storage configuration, Realtime configuration, Edge Function, project link, or credential.
+
+The local runtime is for development only. Its publishable key belongs in ignored frontend and backend `.env` files. Do not put the secret or service-role key in the frontend or commit it anywhere.
 
 When a schema change is separately approved:
 
@@ -11,4 +13,3 @@ When a schema change is separately approved:
 3. include RLS and denial tests with every household-scoped table;
 4. review grants, views, functions, and Storage policies for privilege bypass;
 5. never commit `.temp`, local secrets, or project credentials.
-

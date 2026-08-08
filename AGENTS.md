@@ -20,6 +20,32 @@ Work in small, complete, reviewable vertical slices.
 
 ---
 
+## 1.1 Current MVP scope override
+
+The accepted MVP is an owner-only property portfolio application.
+
+Treat “single end-user” as one private portfolio per authenticated account, not one hardcoded global user. Multiple accounts may exist, but they cannot share or access each other's data.
+
+For the MVP:
+
+* the only application role is owner;
+* do not implement households, memberships, invitations, role management, or shared portfolios;
+* every owner-scoped row requires backend ownership checks, simple RLS, and cross-account denial tests;
+* property income and expenses are named child line items, not dynamic columns or executable expressions;
+* use the approved remote Supabase development environment; do not require a local Supabase runtime;
+* keep all development credentials and generated project-link state outside source control;
+* do not start frontend feature coding until the relevant contracts, migration, RLS policies, and backend boundaries are approved.
+
+The detailed source of truth is:
+
+```text
+markdown files/mvp-owner-portfolio-scope.md
+```
+
+Broader household and collaboration requirements are deferred post-MVP.
+
+---
+
 # 2. Core engineering philosophy
 
 The project must remain:
@@ -428,7 +454,7 @@ If these cannot be explained clearly, do not create the Edge Function.
 * Use foreign keys.
 * Use indexes based on actual query patterns.
 * Use row-level security.
-* Add cross-household denial tests.
+* Add cross-account denial tests for the owner-only MVP and cross-household denial tests if collaboration is later approved.
 * Keep database functions small.
 * Avoid business logic duplication between SQL and Python.
 * Never disable RLS as a shortcut.
@@ -491,22 +517,22 @@ AI agents may explain calculation results, but they must not independently calcu
 
 # 11. Security rules
 
-Every household-scoped resource must be protected by:
+Every owner-scoped MVP resource and every future household-scoped resource must be protected by:
 
 * backend authorisation;
 * database row-level security;
 * automated negative tests.
 
-For every protected resource, test at least:
+For every owner-scoped MVP resource, test at least:
 
 ```text
 owner access
-authorised member access
-viewer access
-inactive member denial
-different household denial
+different authenticated user denial
 unauthenticated denial
+owner identifier reassignment denial
 ```
+
+Post-MVP household resources additionally require member, viewer, inactive-member, and cross-household tests.
 
 Do not trust:
 
@@ -840,19 +866,16 @@ Implement only the first shared contracts:
 * event envelope;
 * API version metadata.
 
-## Stage 5 — Identity and household security foundation
+## Stage 5 — Owner identity and isolation foundation
 
 Implement:
 
 * profile;
-* household;
-* household membership;
-* roles;
 * RLS;
 * audit event;
 * outbox event.
 
-Do not implement properties before household isolation is tested.
+Do not implement properties before owner isolation is tested.
 
 ## Stage 6 — First vertical slice
 
@@ -860,7 +883,6 @@ Implement:
 
 ```text
 sign in
-create household
 create property
 view property
 ```
@@ -882,15 +904,14 @@ Include:
 Implement:
 
 ```text
-acquisition
-ownership
-loan
-valuation
-LVR
+purchase date and price
+user-provided current value
+simple loan summary
+principal paid
 equity
 ```
 
-Use deterministic calculations.
+Use deterministic calculations. For the owner-only MVP, do not implement multiple loans, loan splits, redraw, refinancing, offsets, amortisation schedules, or repayment history. Broader acquisition, ownership, valuation, and LVR modelling remains post-MVP.
 
 ## Stage 8 — Income and expenses
 
