@@ -1,0 +1,48 @@
+openapi: 3.1.0
+info:
+  title: TrackMyProps Backend API
+  version: 1.0.0
+  description: Phase 0 operational endpoints for the public backend service.
+x-api-major-version: v1
+paths:
+  /health:
+    get:
+      operationId: getBackendHealth
+      summary: Check backend process health
+      tags:
+        - Operations
+      responses:
+        "200":
+          description: The backend process is healthy.
+          content:
+            application/json:
+              schema:
+                $ref: ../json-schema/common/health-response.schema.json
+              examples:
+                healthy:
+                  value:
+                    service: backend
+                    status: ok
+                    version: 0.0.0
+  /ready:
+    get:
+      operationId: getBackendReadiness
+      summary: Check backend readiness
+      tags:
+        - Operations
+      responses:
+        "200":
+          description: The dependency-free backend scaffold is ready.
+          content:
+            application/json:
+              schema:
+                $ref: ../json-schema/common/health-response.schema.json
+              examples:
+                ready:
+                  value:
+                    service: backend
+                    status: ready
+                    version: 0.0.0
+tags:
+  - name: Operations
+    description: Non-sensitive service health and readiness checks.

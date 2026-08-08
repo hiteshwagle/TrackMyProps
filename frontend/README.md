@@ -24,3 +24,5 @@ npm run build
 The build command performs a non-interactive Expo web export to `dist/`.
 
 No environment variables are required.
+
+Future backend clients must be generated from or validated against the versioned sources in `../contracts/`. The Phase 0 screen does not consume an API contract yet.

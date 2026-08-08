@@ -1,0 +1,66 @@
+{
+  "$id": "urn:trackmyprops:contracts:errors:error-response:1.0.0",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "Safe client-visible error response with request and distributed-trace correlation.",
+  "properties": {
+    "error": {
+      "additionalProperties": false,
+      "properties": {
+        "code": {
+          "pattern": "^[A-Z][A-Z0-9_]*$",
+          "type": "string"
+        },
+        "details": {
+          "type": "object"
+        },
+        "field_errors": {
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "code": {
+                "pattern": "^[A-Z][A-Z0-9_]*$",
+                "type": "string"
+              },
+              "field": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "message": {
+                "minLength": 1,
+                "type": "string"
+              }
+            },
+            "required": ["field", "code", "message"],
+            "type": "object"
+          },
+          "type": "array"
+        },
+        "message": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "request_id": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "retry_after_seconds": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "retryable": {
+          "type": "boolean"
+        },
+        "trace_id": {
+          "format": "uuid",
+          "type": "string"
+        }
+      },
+      "required": ["code", "message", "request_id", "trace_id"],
+      "type": "object"
+    }
+  },
+  "required": ["error"],
+  "title": "ErrorResponse",
+  "type": "object"
+}

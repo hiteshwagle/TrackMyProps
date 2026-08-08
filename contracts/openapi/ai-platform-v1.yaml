@@ -1,0 +1,48 @@
+openapi: 3.1.0
+info:
+  title: TrackMyProps AI Platform API
+  version: 1.0.0
+  description: Phase 0 operational endpoints for the internal AI service.
+x-api-major-version: v1
+paths:
+  /internal/v1/health:
+    get:
+      operationId: getAiPlatformHealth
+      summary: Check AI-platform process health
+      tags:
+        - Operations
+      responses:
+        "200":
+          description: The AI-platform process is healthy.
+          content:
+            application/json:
+              schema:
+                $ref: ../json-schema/common/health-response.schema.json
+              examples:
+                healthy:
+                  value:
+                    service: ai-platform
+                    status: ok
+                    version: 0.0.0
+  /internal/v1/ready:
+    get:
+      operationId: getAiPlatformReadiness
+      summary: Check AI-platform readiness
+      tags:
+        - Operations
+      responses:
+        "200":
+          description: The dependency-free AI-platform scaffold is ready.
+          content:
+            application/json:
+              schema:
+                $ref: ../json-schema/common/health-response.schema.json
+              examples:
+                ready:
+                  value:
+                    service: ai-platform
+                    status: ready
+                    version: 0.0.0
+tags:
+  - name: Operations
+    description: Non-sensitive internal service health and readiness checks.

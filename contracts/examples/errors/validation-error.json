@@ -1,0 +1,16 @@
+{
+  "error": {
+    "code": "VALIDATION_ERROR",
+    "field_errors": [
+      {
+        "code": "VALUE_TOO_LOW",
+        "field": "weekly_rent",
+        "message": "Weekly rent must be greater than zero."
+      }
+    ],
+    "message": "One or more fields are invalid.",
+    "request_id": "1b8f52ac-f4b6-4ea8-84e6-53f2ad2da17d",
+    "retryable": false,
+    "trace_id": "3566f774-5864-4465-94eb-95e3ba4a3f22"
+  }
+}

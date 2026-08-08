@@ -1,0 +1,66 @@
+{
+  "$id": "urn:trackmyprops:contracts:common:pagination:1.0.0",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$defs": {
+    "cursor": {
+      "additionalProperties": false,
+      "properties": {
+        "has_next": {
+          "type": "boolean"
+        },
+        "next_cursor": {
+          "type": ["string", "null"]
+        }
+      },
+      "required": ["next_cursor", "has_next"],
+      "type": "object"
+    },
+    "page": {
+      "additionalProperties": false,
+      "properties": {
+        "has_next": {
+          "type": "boolean"
+        },
+        "has_previous": {
+          "type": "boolean"
+        },
+        "page": {
+          "minimum": 1,
+          "type": "integer"
+        },
+        "page_size": {
+          "maximum": 100,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "total": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "total_pages": {
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "page",
+        "page_size",
+        "total",
+        "total_pages",
+        "has_next",
+        "has_previous"
+      ],
+      "type": "object"
+    }
+  },
+  "description": "Endpoint-selected page or cursor pagination metadata.",
+  "oneOf": [
+    {
+      "$ref": "#/$defs/page"
+    },
+    {
+      "$ref": "#/$defs/cursor"
+    }
+  ],
+  "title": "Pagination"
+}

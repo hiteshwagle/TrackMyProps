@@ -25,3 +25,4 @@ uv run python -m compileall -q src
 
 No environment variables or external services are required.
 
+The current endpoint contract is `../contracts/openapi/ai-platform-v1.yaml`. Future internal endpoints must be added to that source with their approved execution slice.

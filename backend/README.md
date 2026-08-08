@@ -25,3 +25,4 @@ uv run python -m compileall -q src
 
 No environment variables or external services are required.
 
+The current endpoint contract is `../contracts/openapi/backend-v1.yaml`. Future public endpoints must be added to that source with their approved vertical slice.

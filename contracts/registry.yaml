@@ -1,0 +1,131 @@
+registry_version: 1
+contracts:
+  - contract_id: api.backend
+    contract_type: openapi
+    major_version: 1
+    current_version: 1.0.0
+    status: active
+    owner: trackmyprops-engineering
+    consumers:
+      - frontend
+      - deployment-probes
+    introduced_at: 2026-08-03
+    schema_path: openapi/backend-v1.yaml
+    documentation: README.md
+  - contract_id: api.ai-platform
+    contract_type: openapi
+    major_version: 1
+    current_version: 1.0.0
+    status: active
+    owner: trackmyprops-engineering
+    consumers:
+      - backend
+      - deployment-probes
+    introduced_at: 2026-08-03
+    schema_path: openapi/ai-platform-v1.yaml
+    documentation: README.md
+  - contract_id: common.health-response
+    contract_type: json-schema
+    major_version: 1
+    current_version: 1.0.0
+    status: active
+    owner: trackmyprops-engineering
+    consumers:
+      - backend
+      - ai-platform
+      - deployment-probes
+    introduced_at: 2026-08-03
+    schema_path: json-schema/common/health-response.schema.json
+    documentation: README.md
+  - contract_id: common.api-version-metadata
+    contract_type: json-schema
+    major_version: 1
+    current_version: 1.0.0
+    status: active
+    owner: trackmyprops-engineering
+    consumers:
+      - frontend
+      - backend
+      - ai-platform
+    introduced_at: 2026-08-03
+    schema_path: json-schema/common/api-version-metadata.schema.json
+    documentation: README.md
+  - contract_id: common.money
+    contract_type: json-schema
+    major_version: 1
+    current_version: 1.0.0
+    status: active
+    owner: trackmyprops-engineering
+    consumers:
+      - frontend
+      - backend
+      - ai-platform
+    introduced_at: 2026-08-03
+    schema_path: json-schema/common/money.schema.json
+    documentation: README.md
+  - contract_id: common.rate
+    contract_type: json-schema
+    major_version: 1
+    current_version: 1.0.0
+    status: active
+    owner: trackmyprops-engineering
+    consumers:
+      - frontend
+      - backend
+      - ai-platform
+    introduced_at: 2026-08-03
+    schema_path: json-schema/common/rate.schema.json
+    documentation: README.md
+  - contract_id: common.pagination
+    contract_type: json-schema
+    major_version: 1
+    current_version: 1.0.0
+    status: active
+    owner: trackmyprops-engineering
+    consumers:
+      - frontend
+      - backend
+    introduced_at: 2026-08-03
+    schema_path: json-schema/common/pagination.schema.json
+    documentation: README.md
+  - contract_id: common.idempotency-key
+    contract_type: json-schema
+    major_version: 1
+    current_version: 1.0.0
+    status: active
+    owner: trackmyprops-engineering
+    consumers:
+      - frontend
+      - backend
+      - ai-platform
+      - data-platform
+    introduced_at: 2026-08-03
+    schema_path: json-schema/common/idempotency-key.schema.json
+    documentation: README.md
+  - contract_id: errors.error-response
+    contract_type: json-schema
+    major_version: 1
+    current_version: 1.0.0
+    status: active
+    owner: trackmyprops-engineering
+    consumers:
+      - frontend
+      - backend
+      - ai-platform
+    introduced_at: 2026-08-03
+    schema_path: json-schema/errors/error-response.schema.json
+    documentation: README.md
+  - contract_id: events.envelope
+    contract_type: json-schema
+    major_version: 1
+    current_version: 1.0.0
+    status: active
+    owner: trackmyprops-engineering
+    consumers:
+      - backend
+      - ai-platform
+      - data-platform
+    introduced_at: 2026-08-03
+    schema_path: events/common.schema.json
+    documentation: README.md
+

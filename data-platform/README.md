@@ -20,3 +20,5 @@ uv run python -m compileall -q src
 ```
 
 The project contains no source connector, database, cloud SDK, schedule, or business logic. No environment variables are required.
+
+Future published events must use the versioned envelope in `../contracts/events/common.schema.json`. No transport or domain event is selected in Phase 0.

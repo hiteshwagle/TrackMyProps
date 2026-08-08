@@ -1,0 +1,42 @@
+{
+  "$id": "urn:trackmyprops:contracts:common:api-version-metadata:1.0.0",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "Version and correlation metadata for a versioned API response.",
+  "properties": {
+    "api_version": {
+      "pattern": "^v[1-9][0-9]*$",
+      "type": "string"
+    },
+    "contract_version": {
+      "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)$",
+      "type": "string"
+    },
+    "generated_at": {
+      "format": "date-time",
+      "type": "string"
+    },
+    "request_id": {
+      "format": "uuid",
+      "type": "string"
+    },
+    "service_version": {
+      "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)$",
+      "type": "string"
+    },
+    "trace_id": {
+      "format": "uuid",
+      "type": "string"
+    }
+  },
+  "required": [
+    "request_id",
+    "trace_id",
+    "generated_at",
+    "api_version",
+    "contract_version",
+    "service_version"
+  ],
+  "title": "ApiVersionMetadata",
+  "type": "object"
+}

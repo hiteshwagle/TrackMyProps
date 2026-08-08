@@ -1,0 +1,22 @@
+{
+  "$id": "urn:trackmyprops:contracts:common:health-response:1.0.0",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "Direct operational response returned by a health or readiness endpoint.",
+  "properties": {
+    "service": {
+      "pattern": "^[a-z][a-z0-9-]*$",
+      "type": "string"
+    },
+    "status": {
+      "enum": ["ok", "ready"]
+    },
+    "version": {
+      "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)$",
+      "type": "string"
+    }
+  },
+  "required": ["status", "service", "version"],
+  "title": "HealthResponse",
+  "type": "object"
+}

@@ -1,0 +1,20 @@
+{
+  "actor": {
+    "id": "3e5c6a80-33e5-42ce-8917-d20646840c72",
+    "type": "user"
+  },
+  "aggregate": {
+    "id": "919d97fd-64cb-4eb6-8349-0fc0c78b1285",
+    "type": "example",
+    "version": "1"
+  },
+  "environment": "development",
+  "event_id": "0a04d4f8-55d5-489f-86d7-d676c1bca708",
+  "event_type": "example.created",
+  "event_version": "1.0",
+  "occurred_at": "2026-08-03T00:00:00Z",
+  "payload": {},
+  "producer": "backend",
+  "request_id": "1b8f52ac-f4b6-4ea8-84e6-53f2ad2da17d",
+  "trace_id": "3566f774-5864-4465-94eb-95e3ba4a3f22"
+}

@@ -49,9 +49,9 @@ Phase 0 contains one deterministic example job and its tests. It has no source c
 
 ### `contracts`
 
-The shared boundary for versioned OpenAPI definitions, JSON Schemas, event contracts, and examples. Keeping contracts independent allows the four projects to agree on interfaces without importing another project's implementation.
+The executable source of truth for versioned OpenAPI definitions, JSON Schemas, event contracts, and synthetic examples. Keeping contracts independent allows the four projects to agree on interfaces without importing another project's implementation.
 
-Phase 0 creates directory ownership only. Domain contracts and generated clients are deferred to the shared-contract stage.
+The shared foundation defines health, API-version metadata, errors, money, rates, pagination, idempotency, and the common event envelope. Domain contracts and generated clients remain deferred until an approved vertical slice needs them.
 
 ### `supabase`
 
@@ -125,4 +125,4 @@ Never commit `.env` files, Supabase-generated temporary secrets, provider creden
 
 ## Next phase
 
-The next separately approved task is the shared-contract foundation. Identity, household authorisation, and RLS must be implemented and tested before property features.
+The next separately approved task is identity and household authorisation. Database RLS and cross-household denial tests must pass before property features.
