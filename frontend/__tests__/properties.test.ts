@@ -1,7 +1,10 @@
 import {
   createProperty,
+  fetchPortfolioSummary,
   fetchProperties,
   type PropertyCreate,
+  updateProperty,
+  updatePropertyStatus,
 } from '../src/features/properties/property-api';
 import {
   buildPropertyCreate,
@@ -106,9 +109,18 @@ describe('property contracts', () => {
       },
     );
 
-    const properties = await fetchProperties('access-token', backendUrl, fetchImplementation);
+    const properties = await fetchProperties(
+      'access-token',
+      'active',
+      backendUrl,
+      fetchImplementation,
+    );
 
     expect(properties[0]?.display_name).toBe('Parramatta unit');
+    expect(fetchImplementation).toHaveBeenCalledWith(
+      `${backendUrl}/api/v1/properties?status=active`,
+      expect.any(Object),
+    );
   });
 
   it('creates a property only through the backend API', async () => {
@@ -133,5 +145,78 @@ describe('property contracts', () => {
     const created = await createProperty('access-token', input, backendUrl, fetchImplementation);
 
     expect(created.owner_user_id).toBe('e8cf2dbf-463e-485f-880d-cdb828749979');
+  });
+
+  it('updates editable property details through the backend', async () => {
+    const input = propertyInput();
+    const fetchImplementation = jest.fn(async (url: string | URL | Request, init?: RequestInit) => {
+      expect(String(url)).toBe(`${backendUrl}/api/v1/properties/${propertyResponse().property_id}`);
+      expect(init?.method).toBe('PUT');
+      expect(init?.body).toBe(JSON.stringify(input));
+      return new Response(JSON.stringify(propertyResponse()), {
+        headers: { 'Content-Type': 'application/json' },
+        status: 200,
+      });
+    });
+
+    const updated = await updateProperty(
+      'access-token',
+      propertyResponse().property_id,
+      input,
+      backendUrl,
+      fetchImplementation,
+    );
+
+    expect(updated.display_name).toBe('Parramatta unit');
+  });
+
+  it('archives and restores a property through the status endpoint', async () => {
+    const archivedResponse = { ...propertyResponse(), status: 'archived' as const };
+    const fetchImplementation = jest.fn(async (url: string | URL | Request, init?: RequestInit) => {
+      expect(String(url)).toBe(
+        `${backendUrl}/api/v1/properties/${propertyResponse().property_id}/status`,
+      );
+      expect(init?.method).toBe('PATCH');
+      expect(init?.body).toBe(JSON.stringify({ status: 'archived' }));
+      return new Response(JSON.stringify(archivedResponse), {
+        headers: { 'Content-Type': 'application/json' },
+        status: 200,
+      });
+    });
+
+    const archived = await updatePropertyStatus(
+      'access-token',
+      propertyResponse().property_id,
+      'archived',
+      backendUrl,
+      fetchImplementation,
+    );
+
+    expect(archived.status).toBe('archived');
+  });
+
+  it('loads authoritative portfolio totals from the backend', async () => {
+    const fetchImplementation = jest.fn(async () =>
+      Promise.resolve(
+        new Response(
+          JSON.stringify({
+            asset_value_missing_count: 0,
+            calculation_version: 'portfolio-summary:1.0.0',
+            equity_missing_count: 0,
+            loan_balance_missing_count: 0,
+            property_count: 1,
+            total_asset_value: { amount: '700000.00', currency: 'AUD' },
+            total_equity: { amount: '210000.00', currency: 'AUD' },
+            total_remaining_loan: { amount: '490000.00', currency: 'AUD' },
+          }),
+          { headers: { 'Content-Type': 'application/json' }, status: 200 },
+        ),
+      ),
+    );
+
+    const summary = await fetchPortfolioSummary('access-token', backendUrl, fetchImplementation);
+
+    expect(summary.property_count).toBe(1);
+    expect(summary.total_equity?.amount).toBe('210000.00');
   });
 });

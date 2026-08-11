@@ -15,7 +15,7 @@ import { Button, Field, Message } from '../../components/ui';
 import { appSettings } from '../../config/app-settings';
 import { colours } from '../../theme';
 import type { AddressSuggestion } from './address-lookup';
-import type { PropertyCreate } from './property-api';
+import type { Property, PropertyCreate } from './property-api';
 
 const requiredText = z.string().trim().min(1, 'This field is required.');
 const halfValue = z
@@ -138,6 +138,72 @@ const propertyFormSchema = z
   });
 
 export type PropertyFormValues = z.infer<typeof propertyFormSchema>;
+
+const emptyPropertyFormValues: PropertyFormValues = {
+  addressId: '',
+  addressLine1: '',
+  addressLine2: '',
+  addressSearch: '',
+  annualInterestRatePercent: '',
+  bathrooms: '',
+  bedrooms: '',
+  buildingAreaSqm: '',
+  carSpaces: '',
+  country: 'Australia',
+  currentValue: '',
+  currentValueAsOf: '',
+  displayName: '',
+  landAreaSqm: '',
+  loanBalanceAsOf: '',
+  loanChoice: 'unknown',
+  nextRepaymentDate: '',
+  notes: '',
+  originalLoanAmount: '',
+  postcode: '',
+  propertyType: 'house',
+  purchaseDate: '',
+  purchasePrice: '',
+  remainingLoanBalance: '',
+  repaymentAmount: '',
+  repaymentFrequency: 'monthly',
+  state: '',
+  suburb: '',
+};
+
+export function propertyFormValues(property: Property): PropertyFormValues {
+  return {
+    addressId: property.address_id ?? '',
+    addressLine1: property.address_line_1,
+    addressLine2: property.address_line_2 ?? '',
+    addressSearch: [property.address_line_1, property.suburb, property.state, property.postcode]
+      .filter(Boolean)
+      .join(', '),
+    annualInterestRatePercent: property.annual_interest_rate?.display_percent ?? '',
+    bathrooms: property.bathrooms,
+    bedrooms: property.bedrooms,
+    buildingAreaSqm: property.building_area_sqm,
+    carSpaces: String(property.car_spaces),
+    country: 'Australia',
+    currentValue: property.current_value?.amount ?? '',
+    currentValueAsOf: property.current_value_as_of ?? '',
+    displayName: property.display_name,
+    landAreaSqm: property.land_area_sqm,
+    loanBalanceAsOf: property.loan_balance_as_of ?? '',
+    loanChoice: property.has_loan === true ? 'yes' : property.has_loan === false ? 'no' : 'unknown',
+    nextRepaymentDate: property.next_repayment_date ?? '',
+    notes: property.notes ?? '',
+    originalLoanAmount: property.original_loan_amount?.amount ?? '',
+    postcode: property.postcode,
+    propertyType: property.property_type,
+    purchaseDate: property.purchase_date,
+    purchasePrice: property.purchase_price.amount,
+    remainingLoanBalance: property.has_loan ? (property.remaining_loan_balance?.amount ?? '') : '',
+    repaymentAmount: property.repayment_amount?.amount ?? '',
+    repaymentFrequency: property.repayment_frequency ?? 'monthly',
+    state: property.state,
+    suburb: property.suburb,
+  };
+}
 
 const stepOneFields: FieldPath<PropertyFormValues>[] = [
   'displayName',
@@ -299,21 +365,23 @@ type PropertyFormProps = {
   onAddressLookup?: (query: string, accessToken: string) => Promise<AddressSuggestion[]>;
   onCancel: () => void;
   onSubmit: (propertyInput: PropertyCreate) => Promise<string | null>;
+  initialValues?: PropertyFormValues;
 };
 
 export function PropertyForm({
   accessToken,
+  initialValues,
   onAddressLookup,
   onCancel,
   onSubmit,
 }: PropertyFormProps) {
   const [step, setStep] = useState<1 | 2>(1);
-  const [addressQuery, setAddressQuery] = useState('');
+  const [addressQuery, setAddressQuery] = useState(initialValues?.addressSearch ?? '');
   const [addressSuggestions, setAddressSuggestions] = useState<AddressSuggestion[]>([]);
   const [addressLookupError, setAddressLookupError] = useState<string | null>(null);
   const [isLookingUpAddress, setIsLookingUpAddress] = useState(false);
   const addressRequestId = useRef(0);
-  const skipNextAddressLookup = useRef(false);
+  const skipNextAddressLookup = useRef(Boolean(initialValues?.addressSearch));
   const {
     control,
     formState: { errors, isSubmitting },
@@ -322,36 +390,7 @@ export function PropertyForm({
     setValue,
     trigger,
   } = useForm<PropertyFormValues>({
-    defaultValues: {
-      addressId: '',
-      addressLine1: '',
-      addressLine2: '',
-      addressSearch: '',
-      annualInterestRatePercent: '',
-      bathrooms: '',
-      bedrooms: '',
-      buildingAreaSqm: '',
-      carSpaces: '',
-      country: 'Australia',
-      currentValue: '',
-      currentValueAsOf: '',
-      displayName: '',
-      landAreaSqm: '',
-      loanBalanceAsOf: '',
-      loanChoice: 'unknown',
-      nextRepaymentDate: '',
-      notes: '',
-      originalLoanAmount: '',
-      postcode: '',
-      propertyType: 'house',
-      purchaseDate: '',
-      purchasePrice: '',
-      remainingLoanBalance: '',
-      repaymentAmount: '',
-      repaymentFrequency: 'monthly',
-      state: '',
-      suburb: '',
-    },
+    defaultValues: initialValues ?? emptyPropertyFormValues,
     resolver: zodResolver(propertyFormSchema),
   });
   const loanChoice = useWatch({ control, name: 'loanChoice' });

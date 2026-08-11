@@ -1,6 +1,8 @@
 import { act, fireEvent, render, waitFor } from '@testing-library/react-native';
+import { Platform } from 'react-native';
 
-import { PropertyForm } from '../src/features/properties/property-form';
+import type { Property } from '../src/features/properties/property-api';
+import { PropertyForm, propertyFormValues } from '../src/features/properties/property-form';
 
 const lookupAddressesMock = jest.fn();
 
@@ -24,6 +26,10 @@ describe('PropertyForm', () => {
     lookupAddressesMock.mockReset();
   });
 
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
   it('does not leave the required details step when fields are missing', async () => {
     const view = await render(<PropertyForm onCancel={jest.fn()} onSubmit={jest.fn()} />);
 
@@ -31,6 +37,19 @@ describe('PropertyForm', () => {
 
     expect(await view.findAllByText('This field is required.')).not.toHaveLength(0);
     expect(view.getByText('Property details')).toBeOnTheScreen();
+  });
+
+  it('renders purchase date as a date picker on web', async () => {
+    const originalPlatform = Platform.OS;
+    Object.defineProperty(Platform, 'OS', { configurable: true, value: 'web' });
+
+    try {
+      const view = await render(<PropertyForm onCancel={jest.fn()} onSubmit={jest.fn()} />);
+
+      expect(view.getByLabelText('Purchase date')).toHaveProp('type', 'date');
+    } finally {
+      Object.defineProperty(Platform, 'OS', { configurable: true, value: originalPlatform });
+    }
   });
 
   it('submits after the required step while preserving optional finance as unknown', async () => {
@@ -53,6 +72,62 @@ describe('PropertyForm', () => {
         }),
       );
     });
+  });
+
+  it('prefills an existing property for editing', async () => {
+    jest.useFakeTimers();
+    const property: Property = {
+      address_id: 'GAVIC421626446',
+      address_line_1: '21 Marigold Avenue',
+      address_line_2: null,
+      annual_interest_rate: null,
+      bathrooms: '1.5',
+      bedrooms: '2.5',
+      building_area_sqm: '82.25',
+      car_spaces: 1,
+      country: 'Australia',
+      created_at: '2026-08-11T00:00:00Z',
+      current_value: null,
+      current_value_as_of: null,
+      display_name: 'Altona home',
+      has_loan: null,
+      land_area_sqm: '125.50',
+      loan_balance_as_of: null,
+      next_repayment_date: null,
+      notes: null,
+      original_loan_amount: null,
+      owner_user_id: 'e8cf2dbf-463e-485f-880d-cdb828749979',
+      postcode: '3025',
+      property_id: '919d97fd-64cb-4eb6-8349-0fc0c78b1285',
+      property_type: 'house',
+      purchase_date: '2024-05-01',
+      purchase_price: { amount: '650000.00', currency: 'AUD' },
+      remaining_loan_balance: null,
+      repayment_amount: null,
+      repayment_frequency: null,
+      state: 'VIC',
+      status: 'archived',
+      suburb: 'Altona North',
+      updated_at: '2026-08-11T00:00:00Z',
+    };
+
+    const view = await render(
+      <PropertyForm
+        accessToken="user-token"
+        initialValues={propertyFormValues(property)}
+        onAddressLookup={lookupAddressesMock}
+        onCancel={jest.fn()}
+        onSubmit={jest.fn()}
+      />,
+    );
+
+    expect(view.getByLabelText('Property name')).toHaveDisplayValue('Altona home');
+    expect(view.getByLabelText('Purchase date')).toHaveDisplayValue('2024-05-01');
+    await act(async () => {
+      jest.advanceTimersByTime(1_500);
+    });
+    expect(lookupAddressesMock).not.toHaveBeenCalled();
+    jest.useRealTimers();
   });
 
   it('waits 1.5 seconds after seven characters and prefills address fields on selection', async () => {

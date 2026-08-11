@@ -11,9 +11,11 @@ The address function's non-secret URL, timeout, query, result, and response-size
 For local address lookup, copy `functions/.env.example` to the ignored `functions/.env.development`, add a rotated development provider credential, and run:
 
 ```bash
-make dev-address-function
+make dev-functions
 make test-database
 ```
+
+`make dev-functions` serves all local Edge Functions with the shared development environment file. Adding another function does not require another long-running terminal process.
 
 The credential previously shared in plaintext must not be reused. Do not prefix it with `EXPO_PUBLIC_`; `PSMA_API_KEY` is server-only.
 

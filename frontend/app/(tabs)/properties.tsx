@@ -1,32 +1,93 @@
-import { useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { BodyText, Button, Card, Message, Page, PageTitle } from '../../src/components/ui';
+import { appSettings } from '../../src/config/app-settings';
 import { useAuth } from '../../src/features/auth/auth-context';
+import { lookupAddressesWithSupabase } from '../../src/features/properties/address-lookup-api';
 import {
+  type Property,
   type PropertyCreate,
+  type PropertyListStatus,
   useCreateProperty,
   useProperties,
+  useUpdateProperty,
+  useUpdatePropertyStatus,
 } from '../../src/features/properties/property-api';
-import { lookupAddressesWithSupabase } from '../../src/features/properties/address-lookup-api';
-import { PropertyForm } from '../../src/features/properties/property-form';
+import { PropertyForm, propertyFormValues } from '../../src/features/properties/property-form';
 import { colours } from '../../src/theme';
 
 export default function PropertiesScreen() {
   const { session } = useAuth();
-  const properties = useProperties(session);
+  const [selectedStatus, setSelectedStatus] = useState<PropertyListStatus>('active');
+  const properties = useProperties(session, selectedStatus);
   const createProperty = useCreateProperty(session);
+  const updateProperty = useUpdateProperty(session);
+  const updateStatus = useUpdatePropertyStatus(session);
   const [isAdding, setIsAdding] = useState(false);
+  const [editingProperty, setEditingProperty] = useState<Property | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const isFormOpen = isAdding || editingProperty !== null;
+
+  useEffect(() => {
+    if (!successMessage) {
+      return;
+    }
+    const timeout = setTimeout(
+      () => setSuccessMessage(null),
+      appSettings.feedback.successMessageDurationMilliseconds,
+    );
+    return () => clearTimeout(timeout);
+  }, [successMessage]);
+
+  function closeForm() {
+    setIsAdding(false);
+    setEditingProperty(null);
+  }
+
+  function selectList(status: PropertyListStatus) {
+    closeForm();
+    setActionError(null);
+    setSelectedStatus(status);
+  }
 
   async function submitProperty(propertyInput: PropertyCreate): Promise<string | null> {
     try {
-      const created = await createProperty.mutateAsync(propertyInput);
-      setSuccessMessage(`${created.display_name} was added successfully.`);
-      setIsAdding(false);
+      if (editingProperty) {
+        const updated = await updateProperty.mutateAsync({
+          propertyId: editingProperty.property_id,
+          propertyInput,
+        });
+        setSuccessMessage(`${updated.display_name} was updated successfully.`);
+      } else {
+        const created = await createProperty.mutateAsync(propertyInput);
+        setSuccessMessage(`${created.display_name} was added successfully.`);
+      }
+      closeForm();
       return null;
     } catch (error) {
       return error instanceof Error ? error.message : 'The property could not be saved.';
+    }
+  }
+
+  async function changePropertyStatus(property: Property) {
+    const nextStatus: PropertyListStatus = property.status === 'active' ? 'archived' : 'active';
+    setActionError(null);
+    try {
+      const updated = await updateStatus.mutateAsync({
+        propertyId: property.property_id,
+        status: nextStatus,
+      });
+      setSuccessMessage(
+        nextStatus === 'archived'
+          ? `${updated.display_name} was archived.`
+          : `${updated.display_name} was restored to Active.`,
+      );
+    } catch (error) {
+      setActionError(
+        error instanceof Error ? error.message : 'The property status could not be updated.',
+      );
     }
   }
 
@@ -35,16 +96,13 @@ export default function PropertiesScreen() {
       <View style={styles.header}>
         <View style={styles.headerText}>
           <PageTitle>Properties</PageTitle>
-          <BodyText>
-            Active properties appear here. Sold and archived property workflows follow in a later
-            slice.
-          </BodyText>
+          <BodyText>Manage currently owned and archived properties.</BodyText>
         </View>
-        {!isAdding ? (
+        {!isFormOpen && selectedStatus === 'active' ? (
           <View style={styles.addButton}>
             <Button
               onPress={() => {
-                setSuccessMessage(null);
+                setActionError(null);
                 setIsAdding(true);
               }}
             >
@@ -54,32 +112,58 @@ export default function PropertiesScreen() {
         ) : null}
       </View>
 
+      <View accessibilityRole="tablist" style={styles.tabs}>
+        {(['active', 'archived'] as const).map((status) => {
+          const selected = selectedStatus === status;
+          return (
+            <Pressable
+              accessibilityRole="tab"
+              accessibilityState={{ selected }}
+              key={status}
+              onPress={() => selectList(status)}
+              style={[styles.tab, selected ? styles.tabSelected : null]}
+            >
+              <Text style={[styles.tabText, selected ? styles.tabTextSelected : null]}>
+                {status === 'active' ? 'Active' : 'Archived'}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </View>
+
       {successMessage ? <Message>{successMessage}</Message> : null}
+      {actionError ? <Message kind="error">{actionError}</Message> : null}
       {properties.isError ? <Message kind="error">{properties.error.message}</Message> : null}
 
-      {isAdding ? (
+      {isFormOpen ? (
         <Card>
           <PropertyForm
             accessToken={session?.access_token}
+            initialValues={editingProperty ? propertyFormValues(editingProperty) : undefined}
+            key={editingProperty?.property_id ?? 'new-property'}
             onAddressLookup={lookupAddressesWithSupabase}
-            onCancel={() => setIsAdding(false)}
+            onCancel={closeForm}
             onSubmit={submitProperty}
           />
         </Card>
       ) : null}
 
-      {!isAdding && properties.isPending ? <Message>Loading properties…</Message> : null}
+      {!isFormOpen && properties.isPending ? <Message>Loading properties…</Message> : null}
 
-      {!isAdding && properties.data?.length === 0 ? (
+      {!isFormOpen && properties.data?.length === 0 ? (
         <Card>
-          <Text style={styles.heading}>No properties yet</Text>
+          <Text style={styles.heading}>
+            {selectedStatus === 'active' ? 'No active properties' : 'No archived properties'}
+          </Text>
           <BodyText>
-            Add your first currently owned property using the secure two-step form.
+            {selectedStatus === 'active'
+              ? 'Add your first currently owned property using the secure two-step form.'
+              : 'Properties you archive will remain available here.'}
           </BodyText>
         </Card>
       ) : null}
 
-      {!isAdding && properties.data?.length ? (
+      {!isFormOpen && properties.data?.length ? (
         <View style={styles.list}>
           {properties.data.map((property) => (
             <Card key={property.property_id}>
@@ -91,7 +175,7 @@ export default function PropertiesScreen() {
                     {property.postcode}
                   </BodyText>
                 </View>
-                <Text style={styles.status}>Active</Text>
+                <Text style={styles.status}>{property.status}</Text>
               </View>
               <View style={styles.details}>
                 <Text style={styles.detail}>
@@ -108,12 +192,34 @@ export default function PropertiesScreen() {
                     : 'Not supplied'}
                 </Text>
               </View>
+              <View style={styles.actions}>
+                <View style={styles.actionButton}>
+                  <Button
+                    onPress={() => {
+                      setActionError(null);
+                      setEditingProperty(property);
+                    }}
+                    variant="secondary"
+                  >
+                    Edit
+                  </Button>
+                </View>
+                <View style={styles.actionButton}>
+                  <Button
+                    disabled={updateStatus.isPending}
+                    onPress={() => void changePropertyStatus(property)}
+                    variant="secondary"
+                  >
+                    {property.status === 'active' ? 'Archive' : 'Mark as active'}
+                  </Button>
+                </View>
+              </View>
             </Card>
           ))}
         </View>
       ) : null}
 
-      {!isAdding && properties.isError ? (
+      {!isFormOpen && properties.isError ? (
         <Button onPress={() => void properties.refetch()} variant="secondary">
           Try again
         </Button>
@@ -123,6 +229,14 @@ export default function PropertiesScreen() {
 }
 
 const styles = StyleSheet.create({
+  actionButton: {
+    minWidth: 140,
+  },
+  actions: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+  },
   addButton: {
     minWidth: 150,
   },
@@ -169,5 +283,29 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 6,
     textTransform: 'uppercase',
+  },
+  tab: {
+    alignItems: 'center',
+    borderBottomColor: 'transparent',
+    borderBottomWidth: 3,
+    minWidth: 120,
+    paddingHorizontal: 18,
+    paddingVertical: 12,
+  },
+  tabSelected: {
+    borderBottomColor: colours.accent,
+  },
+  tabs: {
+    borderBottomColor: colours.border,
+    borderBottomWidth: 1,
+    flexDirection: 'row',
+  },
+  tabText: {
+    color: colours.muted,
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  tabTextSelected: {
+    color: colours.accent,
   },
 });

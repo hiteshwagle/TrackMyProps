@@ -33,7 +33,7 @@ Local development:
 
 ```bash
 cp supabase/functions/.env.example supabase/functions/.env.development
-make dev-address-function
+make dev-functions
 ```
 
 Production deployment must use the Supabase secrets manager and a separately rotated production credential. Never put the provider key in frontend configuration, curl examples, source files, logs, issues, or test fixtures.

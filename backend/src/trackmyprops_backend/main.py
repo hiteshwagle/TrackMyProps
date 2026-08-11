@@ -1,6 +1,8 @@
 """FastAPI application for the TrackMyProps backend."""
 
+from collections.abc import Awaitable
 from dataclasses import dataclass
+from decimal import Decimal
 from typing import Annotated, Literal
 from uuid import UUID, uuid4
 
@@ -24,11 +26,16 @@ from trackmyprops_backend.auth import (
 from trackmyprops_backend.config import Settings
 from trackmyprops_backend.property_models import (
     PagePagination,
+    PortfolioMoney,
+    PortfolioSummary,
     Property,
     PropertyCreate,
     PropertyList,
+    PropertyListStatus,
+    PropertyStatusUpdate,
 )
 from trackmyprops_backend.property_store import (
+    PropertyNotFoundError,
     PropertyStore,
     PropertyStoreUnavailableError,
     PropertyWriteRejectedError,
@@ -73,6 +80,35 @@ def correlation_id(value: str | None) -> str:
     return str(uuid4())
 
 
+def calculate_portfolio_summary(items: list[Property]) -> PortfolioSummary:
+    """Calculate active-portfolio totals without treating missing values as zero."""
+
+    asset_values = [item.current_value.amount for item in items if item.current_value is not None]
+    loan_balances = [
+        item.remaining_loan_balance.amount
+        for item in items
+        if item.remaining_loan_balance is not None
+    ]
+    equity_values = [
+        item.current_value.amount - item.remaining_loan_balance.amount
+        for item in items
+        if item.current_value is not None and item.remaining_loan_balance is not None
+    ]
+
+    def total(values: list[Decimal]) -> PortfolioMoney | None:
+        return PortfolioMoney(amount=sum(values, start=Decimal("0"))) if values else None
+
+    return PortfolioSummary(
+        property_count=len(items),
+        total_asset_value=total(asset_values),
+        asset_value_missing_count=len(items) - len(asset_values),
+        total_remaining_loan=total(loan_balances),
+        loan_balance_missing_count=len(items) - len(loan_balances),
+        total_equity=total(equity_values),
+        equity_missing_count=len(items) - len(equity_values),
+    )
+
+
 def create_app(
     settings: Settings | None = None,
     auth_gateway: AuthGateway | None = None,
@@ -88,7 +124,7 @@ def create_app(
         CORSMiddleware,
         allow_origins=list(runtime_settings.frontend_origins),
         allow_credentials=False,
-        allow_methods=["GET", "OPTIONS", "POST"],
+        allow_methods=["GET", "OPTIONS", "PATCH", "POST", "PUT"],
         allow_headers=["Authorization", "Content-Type", "X-Request-ID", "X-Trace-ID"],
     )
 
@@ -174,6 +210,24 @@ def create_app(
                 "Authentication is temporarily unavailable.",
             ) from error
 
+    async def property_write(operation: Awaitable[Property]) -> Property:
+        try:
+            return await operation
+        except PropertyNotFoundError as error:
+            raise ApiError(404, "PROPERTY_NOT_FOUND", "The property could not be found.") from error
+        except PropertyWriteRejectedError as error:
+            raise ApiError(
+                422,
+                "PROPERTY_REJECTED",
+                "The property could not be saved with the supplied values.",
+            ) from error
+        except PropertyStoreUnavailableError as error:
+            raise ApiError(
+                503,
+                "PROPERTY_SERVICE_UNAVAILABLE",
+                "The property could not be saved because the service is unavailable.",
+            ) from error
+
     @application.get("/health", response_model=HealthResponse)
     def health() -> HealthResponse:
         """Report process liveness without exposing configuration."""
@@ -200,14 +254,16 @@ def create_app(
     @application.get("/api/v1/properties", response_model=PropertyList)
     async def list_properties(
         authenticated: Annotated[AuthenticatedRequest, Depends(authenticated_request)],
+        status: PropertyListStatus = PropertyListStatus.ACTIVE,
         page: Annotated[int, Query(ge=1)] = 1,
         page_size: Annotated[int, Query(ge=1, le=100)] = 25,
     ) -> PropertyList:
-        """Return the authenticated owner's active, non-deleted properties."""
+        """Return one lifecycle list of the authenticated owner's non-deleted properties."""
         try:
-            items, total = await properties.list_active(
+            items, total = await properties.list_by_status(
                 authenticated.user.id,
                 authenticated.access_token,
+                status,
                 page,
                 page_size,
             )
@@ -236,24 +292,76 @@ def create_app(
         authenticated: Annotated[AuthenticatedRequest, Depends(authenticated_request)],
     ) -> Property:
         """Create a currently owned property for the authenticated owner."""
-        try:
-            return await properties.create(
+        return await property_write(
+            properties.create(
                 authenticated.user.id,
                 authenticated.access_token,
                 property_input,
             )
-        except PropertyWriteRejectedError as error:
-            raise ApiError(
-                422,
-                "PROPERTY_REJECTED",
-                "The property could not be saved with the supplied values.",
-            ) from error
+        )
+
+    @application.put("/api/v1/properties/{property_id}", response_model=Property)
+    async def update_property(
+        property_id: UUID,
+        property_input: PropertyCreate,
+        authenticated: Annotated[AuthenticatedRequest, Depends(authenticated_request)],
+    ) -> Property:
+        """Replace editable details without changing the property's lifecycle status."""
+        return await property_write(
+            properties.update(
+                authenticated.user.id,
+                property_id,
+                authenticated.access_token,
+                property_input,
+            )
+        )
+
+    @application.patch("/api/v1/properties/{property_id}/status", response_model=Property)
+    async def update_property_status(
+        property_id: UUID,
+        status_update: PropertyStatusUpdate,
+        authenticated: Annotated[AuthenticatedRequest, Depends(authenticated_request)],
+    ) -> Property:
+        """Move an owner property between the active and archived lifecycle lists."""
+        return await property_write(
+            properties.update_status(
+                authenticated.user.id,
+                property_id,
+                authenticated.access_token,
+                status_update.status,
+            )
+        )
+
+    @application.get("/api/v1/portfolio/summary", response_model=PortfolioSummary)
+    async def get_portfolio_summary(
+        authenticated: Annotated[AuthenticatedRequest, Depends(authenticated_request)],
+    ) -> PortfolioSummary:
+        """Return authoritative totals for active, non-deleted owner properties."""
+        page = 1
+        page_size = 100
+        items: list[Property] = []
+        try:
+            while True:
+                page_items, total = await properties.list_by_status(
+                    authenticated.user.id,
+                    authenticated.access_token,
+                    PropertyListStatus.ACTIVE,
+                    page,
+                    page_size,
+                )
+                items.extend(page_items)
+                if len(items) >= total:
+                    break
+                if not page_items:
+                    raise PropertyStoreUnavailableError
+                page += 1
         except PropertyStoreUnavailableError as error:
             raise ApiError(
                 503,
                 "PROPERTY_SERVICE_UNAVAILABLE",
-                "The property could not be saved because the service is unavailable.",
+                "Portfolio totals are temporarily unavailable.",
             ) from error
+        return calculate_portfolio_summary(items)
 
     return application
 

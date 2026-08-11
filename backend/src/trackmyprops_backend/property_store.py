@@ -15,6 +15,7 @@ from trackmyprops_backend.property_models import (
     NonNegativeMoney,
     Property,
     PropertyCreate,
+    PropertyListStatus,
     Rate,
 )
 
@@ -27,6 +28,10 @@ class PropertyWriteRejectedError(Exception):
     """The database rejected a validated property write."""
 
 
+class PropertyNotFoundError(Exception):
+    """No visible owner property matched the requested identifier."""
+
+
 class PropertyStore(Protocol):
     async def create(
         self,
@@ -35,13 +40,30 @@ class PropertyStore(Protocol):
         property_input: PropertyCreate,
     ) -> Property: ...
 
-    async def list_active(
+    async def list_by_status(
         self,
         owner_user_id: UUID,
         access_token: str,
+        status: PropertyListStatus,
         page: int,
         page_size: int,
     ) -> tuple[list[Property], int]: ...
+
+    async def update(
+        self,
+        owner_user_id: UUID,
+        property_id: UUID,
+        access_token: str,
+        property_input: PropertyCreate,
+    ) -> Property: ...
+
+    async def update_status(
+        self,
+        owner_user_id: UUID,
+        property_id: UUID,
+        access_token: str,
+        status: PropertyListStatus,
+    ) -> Property: ...
 
 
 def _optional_amount(value: Money | NonNegativeMoney | None) -> str | None:
@@ -223,17 +245,18 @@ class SupabasePropertyStore:
             raise PropertyStoreUnavailableError
         return _property_from_database(records[0])
 
-    async def list_active(
+    async def list_by_status(
         self,
         owner_user_id: UUID,
         access_token: str,
+        status: PropertyListStatus,
         page: int,
         page_size: int,
     ) -> tuple[list[Property], int]:
         offset = (page - 1) * page_size
         parameters = {
             "owner_user_id": f"eq.{owner_user_id}",
-            "status": "eq.active",
+            "status": f"eq.{status.value}",
             "deleted_at": "is.null",
             "order": "created_at.desc",
             "limit": str(page_size),
@@ -257,3 +280,66 @@ class SupabasePropertyStore:
         except (IndexError, ValueError) as error:
             raise PropertyStoreUnavailableError from error
         return ([_property_from_database(record) for record in self._records(response)], total)
+
+    async def update(
+        self,
+        owner_user_id: UUID,
+        property_id: UUID,
+        access_token: str,
+        property_input: PropertyCreate,
+    ) -> Property:
+        return await self._update_record(
+            owner_user_id,
+            property_id,
+            access_token,
+            _database_payload(owner_user_id, property_input),
+        )
+
+    async def update_status(
+        self,
+        owner_user_id: UUID,
+        property_id: UUID,
+        access_token: str,
+        status: PropertyListStatus,
+    ) -> Property:
+        return await self._update_record(
+            owner_user_id,
+            property_id,
+            access_token,
+            {"status": status.value},
+        )
+
+    async def _update_record(
+        self,
+        owner_user_id: UUID,
+        property_id: UUID,
+        access_token: str,
+        payload: dict[str, object],
+    ) -> Property:
+        headers = {**self._headers(access_token), "Prefer": "return=representation"}
+        parameters = {
+            "id": f"eq.{property_id}",
+            "owner_user_id": f"eq.{owner_user_id}",
+            "deleted_at": "is.null",
+        }
+        try:
+            async with self._client() as client:
+                response = await client.patch(
+                    f"{self._settings.supabase_url}/rest/v1/properties",
+                    headers=headers,
+                    params=parameters,
+                    content=json.dumps(payload),
+                )
+        except httpx2.RequestError as error:
+            raise PropertyStoreUnavailableError from error
+
+        if response.status_code in {400, 409, 422}:
+            raise PropertyWriteRejectedError
+        if response.status_code != 200:
+            raise PropertyStoreUnavailableError
+        records = self._records(response)
+        if not records:
+            raise PropertyNotFoundError
+        if len(records) != 1:
+            raise PropertyStoreUnavailableError
+        return _property_from_database(records[0])

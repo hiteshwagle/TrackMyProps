@@ -1,7 +1,7 @@
 UV ?= uv
 PYTHON_VERSION ?= 3.12
 
-.PHONY: install dev-frontend prod-frontend dev-backend prod-backend dev-address-function test-address-function test-database format format-check lint typecheck test build check
+.PHONY: install dev-frontend prod-frontend dev-backend prod-backend dev-functions test-address-function test-database format format-check lint typecheck test build check
 
 install:
 	cd frontend && npm ci
@@ -24,8 +24,8 @@ prod-backend:
 	cd backend && PYTHONPATH=src $(UV) run --env-file .env.production python -m trackmyprops_backend.check_config
 	cd backend && $(UV) run --env-file .env.production uvicorn trackmyprops_backend.main:app --app-dir src --host 0.0.0.0 --port 8000
 
-dev-address-function:
-	cd supabase && SUPABASE_TELEMETRY_DISABLED=1 supabase functions serve address-lookup --env-file functions/.env.development
+dev-functions:
+	cd supabase && SUPABASE_TELEMETRY_DISABLED=1 supabase functions serve --env-file functions/.env.development
 
 test-address-function:
 	node --test supabase/functions/address-lookup/lookup.test.ts

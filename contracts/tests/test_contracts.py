@@ -57,6 +57,9 @@ OPENAPI_PATHS = {
         "/ready",
         "/api/v1/me",
         "/api/v1/properties",
+        "/api/v1/properties/{property_id}",
+        "/api/v1/properties/{property_id}/status",
+        "/api/v1/portfolio/summary",
     },
 }
 

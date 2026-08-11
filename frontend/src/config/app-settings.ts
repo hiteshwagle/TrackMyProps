@@ -5,4 +5,10 @@ export const appSettings = {
     maximumSuggestions: 10,
     minimumQueryLength: 7,
   },
+  feedback: {
+    successMessageDurationMilliseconds: 5_000,
+  },
+  supabaseFunctions: {
+    addressLookup: 'address-lookup',
+  },
 } as const;

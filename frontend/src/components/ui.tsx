@@ -1,4 +1,4 @@
-import type { PropsWithChildren, ReactNode } from 'react';
+import type { ChangeEvent, CSSProperties, PropsWithChildren, ReactNode } from 'react';
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -46,26 +46,68 @@ export function BodyText({ children }: PropsWithChildren) {
   return <Text style={styles.body}>{children}</Text>;
 }
 
-type FieldProps = TextInputProps & {
+type FieldProps = Omit<TextInputProps, 'onBlur'> & {
   error?: string;
   label: string;
+  onBlur?: () => void;
   webInputType?: 'date';
 };
 
-export function Field({ error, label, webInputType, ...inputProps }: FieldProps) {
-  const webInputProps =
-    Platform.OS === 'web' && webInputType ? ({ type: webInputType } as TextInputProps) : {};
+const webDateInputStyle: CSSProperties = {
+  backgroundColor: colours.white,
+  borderColor: colours.border,
+  borderRadius: 12,
+  borderStyle: 'solid',
+  borderWidth: 1,
+  boxSizing: 'border-box',
+  color: colours.text,
+  fontFamily: 'system-ui, sans-serif',
+  fontSize: 16,
+  minHeight: 48,
+  padding: '11px 14px',
+  width: '100%',
+};
+
+export function Field({
+  editable,
+  error,
+  label,
+  onBlur,
+  onChangeText,
+  value,
+  webInputType,
+  ...inputProps
+}: FieldProps) {
+  const input =
+    Platform.OS === 'web' && webInputType === 'date' ? (
+      <input
+        aria-label={label}
+        disabled={editable === false}
+        onBlur={onBlur}
+        onChange={(event: ChangeEvent<HTMLInputElement>) =>
+          onChangeText?.(event.currentTarget.value)
+        }
+        style={error ? { ...webDateInputStyle, borderColor: colours.danger } : webDateInputStyle}
+        type="date"
+        value={value ?? ''}
+      />
+    ) : (
+      <TextInput
+        accessibilityLabel={label}
+        editable={editable}
+        onBlur={onBlur}
+        onChangeText={onChangeText}
+        placeholderTextColor={colours.muted}
+        style={[styles.input, error ? styles.inputError : null]}
+        value={value}
+        {...inputProps}
+      />
+    );
 
   return (
     <View style={styles.field}>
       <Text style={styles.label}>{label}</Text>
-      <TextInput
-        accessibilityLabel={label}
-        placeholderTextColor={colours.muted}
-        style={[styles.input, error ? styles.inputError : null]}
-        {...webInputProps}
-        {...inputProps}
-      />
+      {input}
       {error ? <Text style={styles.errorText}>{error}</Text> : null}
     </View>
   );

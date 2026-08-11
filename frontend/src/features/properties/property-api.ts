@@ -88,8 +88,22 @@ const propertyListSchema = z
 const errorResponseSchema = z.object({
   error: z.object({ code: z.string(), message: z.string() }),
 });
+const portfolioSummarySchema = z
+  .object({
+    asset_value_missing_count: z.number().int().nonnegative(),
+    calculation_version: z.literal('portfolio-summary:1.0.0'),
+    equity_missing_count: z.number().int().nonnegative(),
+    loan_balance_missing_count: z.number().int().nonnegative(),
+    property_count: z.number().int().nonnegative(),
+    total_asset_value: moneySchema.nullable(),
+    total_equity: moneySchema.nullable(),
+    total_remaining_loan: moneySchema.nullable(),
+  })
+  .strict();
 
 export type Property = z.infer<typeof propertySchema>;
+export type PortfolioSummary = z.infer<typeof portfolioSummarySchema>;
+export type PropertyListStatus = 'active' | 'archived';
 
 export type PropertyCreate = {
   address_id: string | null;
@@ -123,7 +137,13 @@ export type PropertyCreate = {
 
 export const propertyKeys = {
   all: ['properties'] as const,
-  active: (userId: string | undefined) => [...propertyKeys.all, 'active', userId] as const,
+  list: (userId: string | undefined, status: PropertyListStatus) =>
+    [...propertyKeys.all, 'list', userId, status] as const,
+};
+
+export const portfolioKeys = {
+  all: ['portfolio'] as const,
+  summary: (userId: string | undefined) => [...portfolioKeys.all, 'summary', userId] as const,
 };
 
 function backendConfigurationError(backendUrl: string): string | null {
@@ -184,11 +204,12 @@ async function backendRequest(
 
 export async function fetchProperties(
   accessToken: string,
+  status: PropertyListStatus = 'active',
   backendUrl = publicConfig.backendUrl,
   fetchImplementation: typeof fetch = fetch,
 ): Promise<Property[]> {
   const payload = await backendRequest(
-    '/api/v1/properties',
+    `/api/v1/properties?status=${status}`,
     accessToken,
     { method: 'GET' },
     backendUrl,
@@ -203,6 +224,29 @@ export async function fetchProperties(
     );
   }
   return parsed.data.items;
+}
+
+export async function fetchPortfolioSummary(
+  accessToken: string,
+  backendUrl = publicConfig.backendUrl,
+  fetchImplementation: typeof fetch = fetch,
+): Promise<PortfolioSummary> {
+  const payload = await backendRequest(
+    '/api/v1/portfolio/summary',
+    accessToken,
+    { method: 'GET' },
+    backendUrl,
+    fetchImplementation,
+  );
+  const parsed = portfolioSummarySchema.safeParse(payload);
+  if (!parsed.success) {
+    throw new BackendApiError(
+      'The backend returned an invalid portfolio summary.',
+      200,
+      'INVALID_BACKEND_RESPONSE',
+    );
+  }
+  return parsed.data;
 }
 
 export async function createProperty(
@@ -229,12 +273,77 @@ export async function createProperty(
   return parsed.data;
 }
 
-export function useProperties(session: Session | null) {
+export async function updateProperty(
+  accessToken: string,
+  propertyId: string,
+  propertyInput: PropertyCreate,
+  backendUrl = publicConfig.backendUrl,
+  fetchImplementation: typeof fetch = fetch,
+): Promise<Property> {
+  const payload = await backendRequest(
+    `/api/v1/properties/${propertyId}`,
+    accessToken,
+    { body: JSON.stringify(propertyInput), method: 'PUT' },
+    backendUrl,
+    fetchImplementation,
+  );
+  const parsed = propertySchema.safeParse(payload);
+  if (!parsed.success) {
+    throw new BackendApiError(
+      'The backend returned an invalid property.',
+      200,
+      'INVALID_BACKEND_RESPONSE',
+    );
+  }
+  return parsed.data;
+}
+
+export async function updatePropertyStatus(
+  accessToken: string,
+  propertyId: string,
+  status: PropertyListStatus,
+  backendUrl = publicConfig.backendUrl,
+  fetchImplementation: typeof fetch = fetch,
+): Promise<Property> {
+  const payload = await backendRequest(
+    `/api/v1/properties/${propertyId}/status`,
+    accessToken,
+    { body: JSON.stringify({ status }), method: 'PATCH' },
+    backendUrl,
+    fetchImplementation,
+  );
+  const parsed = propertySchema.safeParse(payload);
+  if (!parsed.success) {
+    throw new BackendApiError(
+      'The backend returned an invalid property.',
+      200,
+      'INVALID_BACKEND_RESPONSE',
+    );
+  }
+  return parsed.data;
+}
+
+export function useProperties(session: Session | null, status: PropertyListStatus = 'active') {
   return useQuery({
     enabled: Boolean(session),
-    queryFn: () => fetchProperties(session?.access_token || ''),
-    queryKey: propertyKeys.active(session?.user.id),
+    queryFn: () => fetchProperties(session?.access_token || '', status),
+    queryKey: propertyKeys.list(session?.user.id, status),
   });
+}
+
+export function usePortfolioSummary(session: Session | null) {
+  return useQuery({
+    enabled: Boolean(session),
+    queryFn: () => fetchPortfolioSummary(session?.access_token || ''),
+    queryKey: portfolioKeys.summary(session?.user.id),
+  });
+}
+
+async function invalidatePortfolioQueries(queryClient: ReturnType<typeof useQueryClient>) {
+  await Promise.all([
+    queryClient.invalidateQueries({ queryKey: propertyKeys.all }),
+    queryClient.invalidateQueries({ queryKey: portfolioKeys.all }),
+  ]);
 }
 
 export function useCreateProperty(session: Session | null) {
@@ -243,7 +352,34 @@ export function useCreateProperty(session: Session | null) {
     mutationFn: (propertyInput: PropertyCreate) =>
       createProperty(session?.access_token || '', propertyInput),
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: propertyKeys.all });
+      await invalidatePortfolioQueries(queryClient);
+    },
+  });
+}
+
+export function useUpdateProperty(session: Session | null) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      propertyId,
+      propertyInput,
+    }: {
+      propertyId: string;
+      propertyInput: PropertyCreate;
+    }) => updateProperty(session?.access_token || '', propertyId, propertyInput),
+    onSuccess: async () => {
+      await invalidatePortfolioQueries(queryClient);
+    },
+  });
+}
+
+export function useUpdatePropertyStatus(session: Session | null) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ propertyId, status }: { propertyId: string; status: PropertyListStatus }) =>
+      updatePropertyStatus(session?.access_token || '', propertyId, status),
+    onSuccess: async () => {
+      await invalidatePortfolioQueries(queryClient);
     },
   });
 }

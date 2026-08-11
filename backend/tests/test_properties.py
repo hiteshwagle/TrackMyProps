@@ -10,7 +10,13 @@ from fastapi.testclient import TestClient
 from trackmyprops_backend.auth import AuthenticationFailedError, CurrentUser
 from trackmyprops_backend.config import Settings
 from trackmyprops_backend.main import create_app
-from trackmyprops_backend.property_models import Property, PropertyCreate, PropertyStatus
+from trackmyprops_backend.property_models import (
+    Property,
+    PropertyCreate,
+    PropertyListStatus,
+    PropertyStatus,
+)
+from trackmyprops_backend.property_store import PropertyNotFoundError
 
 TEST_SETTINGS = Settings(
     supabase_url="http://127.0.0.1:54321",
@@ -60,16 +66,65 @@ class FakePropertyStore:
         self.items.append(property_record)
         return property_record
 
-    async def list_active(
+    async def list_by_status(
         self,
         owner_user_id: UUID,
         access_token: str,
+        status: PropertyListStatus,
         page: int,
         page_size: int,
     ) -> tuple[list[Property], int]:
         self.created_for = owner_user_id
         self.access_token = access_token
-        return self.items, len(self.items)
+        items = [item for item in self.items if item.status.value == status.value]
+        return items, len(items)
+
+    async def update(
+        self,
+        owner_user_id: UUID,
+        property_id: UUID,
+        access_token: str,
+        property_input: PropertyCreate,
+    ) -> Property:
+        item = self._find(property_id)
+        updated = Property(
+            **property_input.model_dump(),
+            property_id=item.property_id,
+            owner_user_id=owner_user_id,
+            status=item.status,
+            created_at=item.created_at,
+            updated_at=datetime(2026, 8, 12, tzinfo=UTC),
+        )
+        self.items[self.items.index(item)] = updated
+        self.created_for = owner_user_id
+        self.access_token = access_token
+        return updated
+
+    async def update_status(
+        self,
+        owner_user_id: UUID,
+        property_id: UUID,
+        access_token: str,
+        status: PropertyListStatus,
+    ) -> Property:
+        item = self._find(property_id)
+        updated = item.model_copy(
+            update={
+                "owner_user_id": owner_user_id,
+                "status": PropertyStatus(status.value),
+                "updated_at": datetime(2026, 8, 12, tzinfo=UTC),
+            }
+        )
+        self.items[self.items.index(item)] = updated
+        self.created_for = owner_user_id
+        self.access_token = access_token
+        return updated
+
+    def _find(self, property_id: UUID) -> Property:
+        for item in self.items:
+            if item.property_id == property_id:
+                return item
+        raise PropertyNotFoundError
 
 
 def property_payload() -> dict[str, Any]:
@@ -166,6 +221,107 @@ def test_list_properties_returns_only_store_results(
         "has_previous": False,
     }
     assert property_store.created_for == OWNER_ID
+
+
+def test_list_properties_filters_archived_records(
+    client: TestClient,
+    property_store: FakePropertyStore,
+) -> None:
+    client.post(
+        "/api/v1/properties",
+        headers={"Authorization": "Bearer valid-access-token"},
+        json=property_payload(),
+    )
+    archive_response = client.patch(
+        f"/api/v1/properties/{PROPERTY_ID}/status",
+        headers={"Authorization": "Bearer valid-access-token"},
+        json={"status": "archived"},
+    )
+    assert archive_response.status_code == 200
+
+    active_response = client.get(
+        "/api/v1/properties?status=active",
+        headers={"Authorization": "Bearer valid-access-token"},
+    )
+    archived_response = client.get(
+        "/api/v1/properties?status=archived",
+        headers={"Authorization": "Bearer valid-access-token"},
+    )
+    summary_response = client.get(
+        "/api/v1/portfolio/summary",
+        headers={"Authorization": "Bearer valid-access-token"},
+    )
+
+    assert active_response.json()["items"] == []
+    assert [item["property_id"] for item in archived_response.json()["items"]] == [str(PROPERTY_ID)]
+    assert summary_response.json()["property_count"] == 0
+
+
+def test_owner_can_edit_and_restore_an_archived_property(client: TestClient) -> None:
+    client.post(
+        "/api/v1/properties",
+        headers={"Authorization": "Bearer valid-access-token"},
+        json=property_payload(),
+    )
+    client.patch(
+        f"/api/v1/properties/{PROPERTY_ID}/status",
+        headers={"Authorization": "Bearer valid-access-token"},
+        json={"status": "archived"},
+    )
+    updated_payload = property_payload()
+    updated_payload["display_name"] = "Updated Parramatta unit"
+    update_response = client.put(
+        f"/api/v1/properties/{PROPERTY_ID}",
+        headers={"Authorization": "Bearer valid-access-token"},
+        json=updated_payload,
+    )
+    restore_response = client.patch(
+        f"/api/v1/properties/{PROPERTY_ID}/status",
+        headers={"Authorization": "Bearer valid-access-token"},
+        json={"status": "active"},
+    )
+
+    assert update_response.status_code == 200
+    assert update_response.json()["display_name"] == "Updated Parramatta unit"
+    assert update_response.json()["status"] == "archived"
+    assert restore_response.status_code == 200
+    assert restore_response.json()["status"] == "active"
+
+
+def test_unknown_property_update_does_not_reveal_another_owner(client: TestClient) -> None:
+    response = client.put(
+        f"/api/v1/properties/{uuid4()}",
+        headers={"Authorization": "Bearer valid-access-token"},
+        json=property_payload(),
+    )
+
+    assert response.status_code == 404
+    assert response.json()["error"]["code"] == "PROPERTY_NOT_FOUND"
+
+
+def test_portfolio_summary_uses_active_properties_and_decimal_totals(client: TestClient) -> None:
+    client.post(
+        "/api/v1/properties",
+        headers={"Authorization": "Bearer valid-access-token"},
+        json=property_payload(),
+    )
+
+    response = client.get(
+        "/api/v1/portfolio/summary",
+        headers={"Authorization": "Bearer valid-access-token"},
+    )
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "calculation_version": "portfolio-summary:1.0.0",
+        "property_count": 1,
+        "total_asset_value": {"amount": "700000.00", "currency": "AUD"},
+        "asset_value_missing_count": 0,
+        "total_remaining_loan": {"amount": "490000.00", "currency": "AUD"},
+        "loan_balance_missing_count": 0,
+        "total_equity": {"amount": "210000.00", "currency": "AUD"},
+        "equity_missing_count": 0,
+    }
 
 
 def test_current_value_requires_as_of_date(client: TestClient) -> None:

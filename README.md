@@ -124,9 +124,11 @@ Run development with the development environment files in separate terminals:
 
 ```bash
 make dev-backend
-make dev-address-function
+make dev-functions
 make dev-frontend
 ```
+
+`make dev-functions` starts one local Supabase Edge Functions runtime for every function under `supabase/functions/`. The frontend invokes each function by its configured function name; it does not require a separate runtime process per function.
 
 Run a local production-mode preview with the production environment files in separate terminals:
 

@@ -35,6 +35,13 @@ class PropertyStatus(StrEnum):
     ARCHIVED = "archived"
 
 
+class PropertyListStatus(StrEnum):
+    """Lifecycle groups exposed by the MVP property list."""
+
+    ACTIVE = "active"
+    ARCHIVED = "archived"
+
+
 class Money(BaseModel):
     """AUD amount represented as a Decimal at the API boundary."""
 
@@ -50,6 +57,15 @@ class NonNegativeMoney(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     amount: Decimal = Field(ge=0, max_digits=16, decimal_places=2)
+    currency: Literal["AUD"] = "AUD"
+
+
+class PortfolioMoney(BaseModel):
+    """A portfolio total that may be positive, zero, or negative."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    amount: Decimal = Field(max_digits=18, decimal_places=2)
     currency: Literal["AUD"] = "AUD"
 
 
@@ -163,6 +179,29 @@ class Property(PropertyCreate):
     updated_at: datetime
 
 
+class PropertyStatusUpdate(BaseModel):
+    """Allowed lifecycle transition for the archive workflow."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    status: PropertyListStatus
+
+
+class PortfolioSummary(BaseModel):
+    """Authoritative totals for active, non-deleted owner properties."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    calculation_version: Literal["portfolio-summary:1.0.0"] = "portfolio-summary:1.0.0"
+    property_count: int = Field(ge=0)
+    total_asset_value: PortfolioMoney | None
+    asset_value_missing_count: int = Field(ge=0)
+    total_remaining_loan: PortfolioMoney | None
+    loan_balance_missing_count: int = Field(ge=0)
+    total_equity: PortfolioMoney | None
+    equity_missing_count: int = Field(ge=0)
+
+
 class PagePagination(BaseModel):
     """Bounded page metadata for property collections."""
 
@@ -177,7 +216,7 @@ class PagePagination(BaseModel):
 
 
 class PropertyList(BaseModel):
-    """Current owner's active properties."""
+    """Current owner's properties for one lifecycle list."""
 
     model_config = ConfigDict(extra="forbid")
 

@@ -9,13 +9,15 @@ The current slice contains:
 - a required linked Terms and Conditions checkbox;
 - protected Expo Router navigation;
 - bottom tabs for Dashboard, Properties, Analytics, and Settings;
-- a two-step add-property form and active property list;
+- a two-step add/edit property form with Active and Archived property lists;
+- archive and restore actions that refresh property lists, Dashboard, and Analytics;
+- active-portfolio property, asset, loan, and equity totals from the backend;
 - authenticated, debounced address suggestions through the Supabase Edge Function;
 - an authenticated current-user request to the local backend;
 - a manual account-deletion email action;
 - placeholder-only public configuration.
 
-Property creation calls the authenticated backend; the frontend never writes the property table directly. Editing, archive/sold/remove workflows, income, expenses, analytics calculations, commercial integrations, and production credentials remain deferred.
+Property writes call the authenticated backend; the frontend never writes the property table directly or calculates authoritative portfolio totals. Sold/remove workflows, archived-analytics preferences, income, expenses, cash-flow calculations, commercial integrations, and production credentials remain deferred.
 
 ## Requirements
 
@@ -38,6 +40,14 @@ npm run build
 ```
 
 `npm run dev` starts the web application with `.env.development`. `npm run prod` builds with `.env.production` and serves the result on port `4173`. The explicit build commands export development output to `dist-development/` and production output to `dist/`.
+
+Address lookup requires the generic local Edge Functions runtime in a separate root terminal:
+
+```bash
+make dev-functions
+```
+
+The runtime serves every folder under `supabase/functions/`. Frontend function names are centralized in `src/config/app-settings.ts`; the address client invokes the configured `address-lookup` function.
 
 Each environment command validates its selected file first. Production build and preview commands fail until all production placeholders have been replaced with approved non-loopback HTTPS configuration and a production publishable key.
 
