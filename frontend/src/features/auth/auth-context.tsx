@@ -31,6 +31,7 @@ type AuthContextValue = {
   signOut: () => Promise<AuthResult>;
   signUp: (input: SignUpInput) => Promise<SignUpResult>;
   updatePassword: (password: string) => Promise<AuthResult>;
+  updateProfilePhone: (phone: string) => Promise<AuthResult>;
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -143,6 +144,17 @@ export function AuthProvider({ children }: PropsWithChildren) {
     return { error: error?.message ?? null };
   }
 
+  async function updateProfilePhone(phone: string): Promise<AuthResult> {
+    if (!supabase) {
+      return unavailableResult();
+    }
+
+    const { error } = await supabase.auth.updateUser({
+      data: { phone: phone.trim() || null },
+    });
+    return { error: error?.message ?? null };
+  }
+
   async function signOut(): Promise<AuthResult> {
     if (!supabase) {
       return unavailableResult();
@@ -163,6 +175,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
         signOut,
         signUp,
         updatePassword,
+        updateProfilePhone,
       }}
     >
       {children}

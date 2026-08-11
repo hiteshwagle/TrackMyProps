@@ -203,13 +203,17 @@ function PropertyListCard({
   return (
     <Card>
       <View style={styles.propertyHeader}>
-        <View style={styles.headerText}>
+        <View style={[styles.headerText, styles.propertyHeaderText]}>
           <Text style={styles.heading}>{property.display_name}</Text>
           <BodyText>
             {property.address_line_1}, {property.suburb} {property.state} {property.postcode}
           </BodyText>
         </View>
-        <Text style={styles.status}>{property.status}</Text>
+        <View style={styles.statusBadge}>
+          <Text numberOfLines={1} style={styles.statusText}>
+            {property.status}
+          </Text>
+        </View>
       </View>
       <View style={styles.details}>
         <Text style={styles.detail}>Purchase price: AUD {property.purchase_price.amount}</Text>
@@ -291,15 +295,22 @@ const styles = StyleSheet.create({
     gap: 12,
     justifyContent: 'space-between',
   },
-  status: {
+  propertyHeaderText: {
+    minWidth: 0,
+  },
+  statusBadge: {
     backgroundColor: '#E5F2EE',
     borderRadius: 999,
+    flexShrink: 0,
+    minWidth: 68,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+  statusText: {
     color: colours.accent,
     fontSize: 12,
     fontWeight: '700',
-    overflow: 'hidden',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
+    textAlign: 'center',
     textTransform: 'uppercase',
   },
   tab: {

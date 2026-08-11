@@ -5,18 +5,13 @@ import { z } from 'zod';
 
 import { Button, Field, Message } from '../../components/ui';
 import { colours } from '../../theme';
+import { optionalProfilePhoneSchema } from '../profile/profile-phone';
 
 const signUpSchema = z.object({
   email: z.email('Enter a valid email address.'),
   name: z.string().trim().min(1, 'Enter your name.').max(100, 'Name is too long.'),
   password: z.string().min(8, 'Use at least 8 characters.').max(128),
-  phone: z
-    .string()
-    .trim()
-    .refine(
-      (value) => value === '' || /^[+0-9 ()-]{7,20}$/.test(value),
-      'Enter a valid phone number or leave it blank.',
-    ),
+  phone: optionalProfilePhoneSchema,
   termsAccepted: z.boolean().refine((value) => value, {
     message: 'Accept the Terms and Conditions to continue.',
   }),

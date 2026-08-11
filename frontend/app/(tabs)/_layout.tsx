@@ -1,6 +1,7 @@
 import { Feather } from '@react-native-vector-icons/feather';
 import { Tabs } from 'expo-router';
 import type { ColorValue } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BrandHeader } from '../../src/components/brand-header';
 import { getTabIconName, type TabName } from '../../src/navigation/tab-icons';
@@ -33,6 +34,9 @@ function SettingsTabIcon(props: TabIconProps) {
 }
 
 export default function TabsLayout() {
+  const safeAreaInsets = useSafeAreaInsets();
+  const bottomPadding = Math.max(safeAreaInsets.bottom, 10);
+
   return (
     <Tabs
       screenOptions={{
@@ -43,12 +47,12 @@ export default function TabsLayout() {
         headerTintColor: colours.text,
         tabBarActiveTintColor: colours.accent,
         tabBarInactiveTintColor: colours.muted,
-        tabBarLabelStyle: { fontSize: 12, fontWeight: '600' },
+        tabBarLabelStyle: { fontSize: 12, fontWeight: '600', lineHeight: 16 },
         tabBarStyle: {
           backgroundColor: colours.white,
           borderTopColor: colours.border,
-          height: 64,
-          paddingBottom: 8,
+          height: 64 + bottomPadding,
+          paddingBottom: bottomPadding,
           paddingTop: 8,
         },
       }}

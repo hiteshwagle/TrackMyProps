@@ -113,6 +113,7 @@ describe('PropertiesScreen', () => {
     expect(view.getByRole('tab', { name: 'Archived' })).toBeOnTheScreen();
     expect(view.getByText('Total income (annual): AUD 33800.00')).toBeOnTheScreen();
     expect(view.getByText('Total expense (annual): AUD 5400.00')).toBeOnTheScreen();
+    expect(view.getByText('active').props.numberOfLines).toBe(1);
     expect(view.queryByRole('button', { name: 'Add income' })).not.toBeOnTheScreen();
     expect(view.queryByRole('button', { name: 'Add expense' })).not.toBeOnTheScreen();
 

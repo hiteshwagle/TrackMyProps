@@ -79,7 +79,11 @@ export default function PropertyDetailsScreen() {
             {propertyRecord.postcode}
           </BodyText>
         </View>
-        <Text style={styles.status}>{propertyRecord.status}</Text>
+        <View style={styles.statusBadge}>
+          <Text numberOfLines={1} style={styles.statusText}>
+            {propertyRecord.status}
+          </Text>
+        </View>
       </View>
 
       {successMessage ? <Message>{successMessage}</Message> : null}
@@ -200,15 +204,19 @@ const styles = StyleSheet.create({
     fontSize: 22,
     fontWeight: '700',
   },
-  status: {
+  statusBadge: {
     backgroundColor: '#E5F2EE',
     borderRadius: 999,
+    flexShrink: 0,
+    minWidth: 68,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+  statusText: {
     color: colours.accent,
     fontSize: 12,
     fontWeight: '700',
-    overflow: 'hidden',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
+    textAlign: 'center',
     textTransform: 'uppercase',
   },
 });

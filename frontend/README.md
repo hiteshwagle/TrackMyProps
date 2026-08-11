@@ -18,6 +18,7 @@ The current slice contains:
 - authenticated, debounced address suggestions through the Supabase Edge Function;
 - an authenticated current-user request to the local backend;
 - a manual account-deletion email action;
+- editable optional profile phone metadata in Settings;
 - placeholder-only public configuration.
 
 Property and cash-flow writes call the authenticated backend; the frontend never writes those tables directly or calculates authoritative totals. Monthly cash-flow views, sold/remove workflows, archived-analytics preferences, commercial integrations, and production credentials remain deferred.
