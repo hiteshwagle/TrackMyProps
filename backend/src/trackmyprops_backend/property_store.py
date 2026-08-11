@@ -55,6 +55,7 @@ def _database_payload(owner_user_id: UUID, property_input: PropertyCreate) -> di
 
     return {
         "owner_user_id": str(owner_user_id),
+        "address_id": property_input.address_id,
         "display_name": property_input.display_name,
         "address_line_1": property_input.address_line_1,
         "address_line_2": property_input.address_line_2,
@@ -130,6 +131,7 @@ def _property_from_database(record: dict[str, object]) -> Property:
         {
             "property_id": record["id"],
             "owner_user_id": record["owner_user_id"],
+            "address_id": record.get("address_id"),
             "display_name": record["display_name"],
             "address_line_1": record["address_line_1"],
             "address_line_2": record.get("address_line_2"),

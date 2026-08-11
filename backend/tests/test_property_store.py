@@ -21,6 +21,7 @@ def database_record(owner_user_id: UUID = OWNER_ID) -> dict[str, object]:
     return {
         "id": "919d97fd-64cb-4eb6-8349-0fc0c78b1285",
         "owner_user_id": str(owner_user_id),
+        "address_id": "GANSW123456789",
         "display_name": "Parramatta unit",
         "address_line_1": "10 Example Street",
         "address_line_2": None,
@@ -63,6 +64,7 @@ async def test_create_forwards_verified_token_and_assigns_owner() -> None:
         assert request.headers["Prefer"] == "return=representation"
         payload = json.loads(request.content)
         assert payload["owner_user_id"] == str(OWNER_ID)
+        assert payload["address_id"] == "GANSW123456789"
         assert "property_id" not in payload
         return httpx2.Response(201, json=[database_record()])
 

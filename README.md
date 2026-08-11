@@ -1,8 +1,8 @@
 # TrackMyProps
 
-TrackMyProps is an Australia-focused property-investment platform. This repository contains the Phase 0 scaffold, owner-only identity integration, and the first property create/list vertical slice.
+TrackMyProps is an Australia-focused property-investment platform. This repository contains the Phase 0 scaffold, owner-only identity integration, the first property create/list vertical slice, and a development-only authenticated address lookup adapter.
 
-Property editing, lifecycle management, income, expenses, analytics, billing, providers, and AI agents are not implemented yet.
+Property editing, lifecycle management, income, expenses, portfolio analytics, billing, AI agents, and production provider integrations are not implemented yet.
 
 ## Repository structure
 
@@ -27,13 +27,17 @@ TrackMyProps is a monorepo. The four application projects are kept separate so t
 
 The user-facing Expo React Native application, written in strict TypeScript. It authenticates users through Supabase and will call the backend API for portfolio workflows. It must not contain authoritative financial calculations, permission decisions, database credentials, service-role keys, AI-provider secrets, or direct commercial-provider integrations.
 
-The current web-first slice contains email/password authentication against local Supabase, protected bottom navigation, linked Terms acceptance, a manual deletion-request email action, an authenticated current-user call, and a two-step property create/list experience. Financial totals and lifecycle actions remain deferred.
+The current web-first slice contains email/password authentication against local Supabase, protected bottom navigation, linked Terms acceptance, a manual deletion-request email action, an authenticated current-user call, and a two-step property create/list experience. The property form can call the authenticated address Edge Function after a 1.5-second debounce and prefill only provider-supported address fields. Financial totals and lifecycle actions remain deferred.
+
+Frontend non-secret application behaviour is centralized in `frontend/src/config/app-settings.ts`; environment-specific public values are loaded in `frontend/src/config/public-config.ts`.
 
 ### `backend`
 
 The Python FastAPI service that will be the authoritative application and business layer. It will eventually own authentication validation, owner authorisation, property and financial records, deterministic calculations, audit events, exports, and deletion workflows. Household access and collaboration remain post-MVP.
 
-The backend exposes health/readiness, authenticated identity, and authenticated property create/list endpoints. It validates bearer tokens through Supabase Auth and uses the caller's JWT for RLS-protected property persistence. It has no service-role key, privileged database credential, analytics calculations, or commercial-provider integration.
+The backend exposes health/readiness, authenticated identity, and authenticated property create/list endpoints. It validates bearer tokens through Supabase Auth and uses the caller's JWT for RLS-protected property persistence. It accepts an optional canonical provider address ID but has no service-role key, privileged database credential, analytics calculations, or direct commercial-provider integration.
+
+FastAPI environment configuration is centralized in `backend/src/trackmyprops_backend/config.py`. The separately deployed address Edge Function has its own `supabase/functions/address-lookup/app-settings.ts` because Deno cannot import the Python service's runtime configuration.
 
 ### `ai-platform`
 
@@ -55,9 +59,9 @@ The shared foundation defines health, API-version metadata, errors, money, rates
 
 ### `supabase`
 
-The migration boundary for the Supabase PostgreSQL schema and database security policies. The first migration creates owner-scoped properties with RLS.
+The migration and Edge Function boundary for Supabase. Migrations create owner-scoped properties and a server-only normalized provider-address table with RLS.
 
-The property migration grants authenticated owners only the required select, insert, and update access to their own non-deleted rows. Storage, Realtime, Edge Functions, project links, and credentials remain absent. Generated Supabase temporary state is ignored by Git.
+The property migration grants authenticated owners only the required select, insert, and update access to their own non-deleted rows. The authenticated address lookup function holds no committed credential and is not approved for production until provider rights are verified. Storage, Realtime, project links, and credentials remain absent. Generated Supabase temporary state is ignored by Git.
 
 ### `infrastructure`
 
@@ -94,12 +98,15 @@ Contains the source-of-truth product, architecture, security, API, database, AI,
 - Python 3.12
 - `uv` 0.12.1
 - Make
+- Supabase CLI 2.111 or later for migrations and Edge Functions
 
 ## Commands
 
 ```bash
 make install
 make check
+make test-address-function
+make test-database
 ```
 
 Individual commands are also available:
@@ -117,6 +124,7 @@ Run development with the development environment files in separate terminals:
 
 ```bash
 make dev-backend
+make dev-address-function
 make dev-frontend
 ```
 

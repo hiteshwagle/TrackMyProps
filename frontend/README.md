@@ -10,6 +10,7 @@ The current slice contains:
 - protected Expo Router navigation;
 - bottom tabs for Dashboard, Properties, Analytics, and Settings;
 - a two-step add-property form and active property list;
+- authenticated, debounced address suggestions through the Supabase Edge Function;
 - an authenticated current-user request to the local backend;
 - a manual account-deletion email action;
 - placeholder-only public configuration.
@@ -41,6 +42,8 @@ npm run build
 Each environment command validates its selected file first. Production build and preview commands fail until all production placeholders have been replaced with approved non-loopback HTTPS configuration and a production publishable key.
 
 ## Configuration
+
+Non-secret behavioural settings shared by frontend features are defined in `src/config/app-settings.ts`. Environment-specific public values are read and validated by `src/config/public-config.ts` from the selected environment file.
 
 The ignored runtime files are:
 

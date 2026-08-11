@@ -25,6 +25,7 @@ const rateSchema = z
 
 const propertySchema = z
   .object({
+    address_id: z.string().nullable(),
     address_line_1: z.string(),
     address_line_2: z.string().nullable(),
     annual_interest_rate: rateSchema.nullable(),
@@ -91,6 +92,7 @@ const errorResponseSchema = z.object({
 export type Property = z.infer<typeof propertySchema>;
 
 export type PropertyCreate = {
+  address_id: string | null;
   address_line_1: string;
   address_line_2: string | null;
   annual_interest_rate: { display_percent: string; value: string } | null;

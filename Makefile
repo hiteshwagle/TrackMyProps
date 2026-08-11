@@ -1,7 +1,7 @@
 UV ?= uv
 PYTHON_VERSION ?= 3.12
 
-.PHONY: install dev-frontend prod-frontend dev-backend prod-backend format format-check lint typecheck test build check
+.PHONY: install dev-frontend prod-frontend dev-backend prod-backend dev-address-function test-address-function test-database format format-check lint typecheck test build check
 
 install:
 	cd frontend && npm ci
@@ -24,8 +24,18 @@ prod-backend:
 	cd backend && PYTHONPATH=src $(UV) run --env-file .env.production python -m trackmyprops_backend.check_config
 	cd backend && $(UV) run --env-file .env.production uvicorn trackmyprops_backend.main:app --app-dir src --host 0.0.0.0 --port 8000
 
+dev-address-function:
+	cd supabase && SUPABASE_TELEMETRY_DISABLED=1 supabase functions serve address-lookup --env-file functions/.env.development
+
+test-address-function:
+	node --test supabase/functions/address-lookup/lookup.test.ts
+
+test-database:
+	SUPABASE_TELEMETRY_DISABLED=1 supabase test db --local supabase/tests/database
+
 format:
 	cd frontend && npm run format
+	cd frontend && npx prettier --write ../supabase/functions/address-lookup/*.ts ../supabase/functions/address-lookup/deno.json
 	cd backend && $(UV) run ruff format .
 	cd ai-platform && $(UV) run ruff format .
 	cd data-platform && $(UV) run ruff format .
@@ -33,6 +43,7 @@ format:
 
 format-check:
 	cd frontend && npm run format:check
+	cd frontend && npx prettier --check ../supabase/functions/address-lookup/*.ts ../supabase/functions/address-lookup/deno.json
 	cd backend && $(UV) run ruff format --check .
 	cd ai-platform && $(UV) run ruff format --check .
 	cd data-platform && $(UV) run ruff format --check .
@@ -47,6 +58,7 @@ lint:
 
 typecheck:
 	cd frontend && npm run typecheck
+	cd frontend && npx tsc --ignoreConfig --noEmit --strict --target ES2022 --lib ES2022,DOM --module ESNext --moduleResolution Bundler --allowImportingTsExtensions ../supabase/functions/address-lookup/lookup.ts
 	cd backend && $(UV) run mypy src tests
 	cd ai-platform && $(UV) run mypy src tests
 	cd data-platform && $(UV) run mypy src tests
@@ -54,6 +66,7 @@ typecheck:
 
 test:
 	cd frontend && npm run test:ci
+	$(MAKE) test-address-function
 	cd backend && $(UV) run pytest
 	cd ai-platform && $(UV) run pytest
 	cd data-platform && $(UV) run pytest

@@ -113,7 +113,8 @@ Frontend rules:
 - online operation is required; offline mode shows a clear unavailable or reconnect state and does not permit offline editing;
 - saves show success only after backend confirmation;
 - an unfinished form warns before being discarded and is not persisted as a device draft;
-- push notifications, maps, property-data lookup, photographs, documents, product analytics, and commercial monitoring providers remain deferred.
+- push notifications, maps, property attribute lookup, photographs, documents, product analytics, and commercial monitoring providers remain deferred;
+- authenticated PSMA/Geoscape address suggestions are approved for development as a separately bounded adapter, but production use and provider-data storage remain blocked until current licence, contract, retention, display, caching, attribution, privacy, and rate-limit evidence is recorded.
 
 ## 7. Property record scope
 
@@ -158,7 +159,7 @@ updated_at
 
 Rules:
 
-- address entry is manual until a maps or property-data provider is separately approved;
+- structured address entry permits manual entry and the separately approved development address-suggestion adapter; a suggestion only prefills fields present in the provider response;
 - address line 2 is optional; the other structured address fields are required;
 - the initial property types are house, apartment/unit, townhouse, villa, land, commercial, and other;
 - display name, structured address, property type, bedrooms, bathrooms, car spaces, land area, building area, purchase date, and purchase price are required;

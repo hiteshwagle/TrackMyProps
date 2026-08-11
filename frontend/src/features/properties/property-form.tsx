@@ -7,12 +7,14 @@ import {
   useForm,
   useWatch,
 } from 'react-hook-form';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, View, type TextInputProps } from 'react-native';
 import { z } from 'zod';
 
 import { Button, Field, Message } from '../../components/ui';
+import { appSettings } from '../../config/app-settings';
 import { colours } from '../../theme';
+import type { AddressSuggestion } from './address-lookup';
 import type { PropertyCreate } from './property-api';
 
 const requiredText = z.string().trim().min(1, 'This field is required.');
@@ -43,8 +45,10 @@ const optionalIsoDate = z
 
 const propertyFormSchema = z
   .object({
+    addressId: z.string().trim(),
     addressLine1: requiredText,
     addressLine2: z.string().trim(),
+    addressSearch: z.string().trim().max(appSettings.addressLookup.maximumQueryLength),
     annualInterestRatePercent: z.string().trim(),
     bathrooms: halfValue,
     bedrooms: halfValue,
@@ -190,6 +194,7 @@ export function buildPropertyCreate(values: PropertyFormValues): PropertyCreate 
   const includesLoan = hasLoan === true;
 
   return {
+    address_id: values.addressId || null,
     address_line_1: values.addressLine1,
     address_line_2: values.addressLine2 || null,
     annual_interest_rate: includesLoan
@@ -290,22 +295,38 @@ function ChoiceField({
 }
 
 type PropertyFormProps = {
+  accessToken?: string;
+  onAddressLookup?: (query: string, accessToken: string) => Promise<AddressSuggestion[]>;
   onCancel: () => void;
   onSubmit: (propertyInput: PropertyCreate) => Promise<string | null>;
 };
 
-export function PropertyForm({ onCancel, onSubmit }: PropertyFormProps) {
+export function PropertyForm({
+  accessToken,
+  onAddressLookup,
+  onCancel,
+  onSubmit,
+}: PropertyFormProps) {
   const [step, setStep] = useState<1 | 2>(1);
+  const [addressQuery, setAddressQuery] = useState('');
+  const [addressSuggestions, setAddressSuggestions] = useState<AddressSuggestion[]>([]);
+  const [addressLookupError, setAddressLookupError] = useState<string | null>(null);
+  const [isLookingUpAddress, setIsLookingUpAddress] = useState(false);
+  const addressRequestId = useRef(0);
+  const skipNextAddressLookup = useRef(false);
   const {
     control,
     formState: { errors, isSubmitting },
     handleSubmit,
     setError,
+    setValue,
     trigger,
   } = useForm<PropertyFormValues>({
     defaultValues: {
+      addressId: '',
       addressLine1: '',
       addressLine2: '',
+      addressSearch: '',
       annualInterestRatePercent: '',
       bathrooms: '',
       bedrooms: '',
@@ -335,6 +356,74 @@ export function PropertyForm({ onCancel, onSubmit }: PropertyFormProps) {
   });
   const loanChoice = useWatch({ control, name: 'loanChoice' });
 
+  useEffect(() => {
+    if (skipNextAddressLookup.current) {
+      skipNextAddressLookup.current = false;
+      return;
+    }
+
+    const query = addressQuery.trim();
+    const requestId = ++addressRequestId.current;
+    if (
+      !accessToken ||
+      !onAddressLookup ||
+      query.length < appSettings.addressLookup.minimumQueryLength
+    ) {
+      return;
+    }
+
+    const timeout = setTimeout(() => {
+      setIsLookingUpAddress(true);
+      setAddressLookupError(null);
+      void onAddressLookup(query, accessToken)
+        .then((suggestions) => {
+          if (addressRequestId.current === requestId) {
+            setAddressSuggestions(suggestions);
+          }
+        })
+        .catch((error: unknown) => {
+          if (addressRequestId.current === requestId) {
+            setAddressSuggestions([]);
+            setAddressLookupError(
+              error instanceof Error ? error.message : 'Address lookup is unavailable.',
+            );
+          }
+        })
+        .finally(() => {
+          if (addressRequestId.current === requestId) {
+            setIsLookingUpAddress(false);
+          }
+        });
+    }, appSettings.addressLookup.debounceMilliseconds);
+
+    return () => clearTimeout(timeout);
+  }, [accessToken, addressQuery, onAddressLookup]);
+
+  function changeAddressQuery(value: string) {
+    addressRequestId.current += 1;
+    setAddressQuery(value);
+    setAddressSuggestions([]);
+    setAddressLookupError(null);
+    setIsLookingUpAddress(false);
+    setValue('addressSearch', value, { shouldDirty: true });
+    setValue('addressId', '', { shouldDirty: true });
+  }
+
+  function selectAddress(selected: AddressSuggestion) {
+    skipNextAddressLookup.current = true;
+    addressRequestId.current += 1;
+    setAddressQuery(selected.formatted_address);
+    setAddressSuggestions([]);
+    setAddressLookupError(null);
+    setValue('addressSearch', selected.formatted_address, { shouldDirty: true });
+    setValue('addressId', selected.address_id, { shouldDirty: true });
+    setValue('addressLine1', selected.address_line_1, { shouldDirty: true, shouldValidate: true });
+    setValue('suburb', selected.suburb, { shouldDirty: true, shouldValidate: true });
+    setValue('state', selected.state, { shouldDirty: true, shouldValidate: true });
+    setValue('postcode', selected.postcode, { shouldDirty: true, shouldValidate: true });
+    setValue('country', selected.country, { shouldDirty: true, shouldValidate: true });
+  }
+
   async function nextStep() {
     if (await trigger(stepOneFields)) {
       setStep(2);
@@ -359,6 +448,36 @@ export function PropertyForm({ onCancel, onSubmit }: PropertyFormProps) {
       {step === 1 ? (
         <>
           <FormField control={control} label="Property name" name="displayName" />
+          <View style={styles.addressLookup}>
+            <Field
+              autoComplete="street-address"
+              label="Find address"
+              onChangeText={changeAddressQuery}
+              placeholder="Start typing an Australian address"
+              value={addressQuery}
+            />
+            {isLookingUpAddress ? (
+              <Text style={styles.lookupStatus}>Looking up addresses…</Text>
+            ) : null}
+            {addressLookupError ? <Text style={styles.errorText}>{addressLookupError}</Text> : null}
+            {addressSuggestions.length > 0 ? (
+              <View accessibilityLabel="Address suggestions" style={styles.addressSuggestions}>
+                {addressSuggestions.map((suggestion) => (
+                  <Pressable
+                    accessibilityRole="button"
+                    key={suggestion.address_id}
+                    onPress={() => selectAddress(suggestion)}
+                    style={({ pressed }) => [
+                      styles.addressSuggestion,
+                      pressed ? styles.addressSuggestionPressed : null,
+                    ]}
+                  >
+                    <Text style={styles.addressSuggestionText}>{suggestion.formatted_address}</Text>
+                  </Pressable>
+                ))}
+              </View>
+            ) : null}
+          </View>
           <FormField control={control} label="Address line 1" name="addressLine1" />
           <FormField control={control} label="Address line 2 (optional)" name="addressLine2" />
           <FormField control={control} label="Suburb" name="suburb" />
@@ -561,6 +680,39 @@ export function PropertyForm({ onCancel, onSubmit }: PropertyFormProps) {
 }
 
 const styles = StyleSheet.create({
+  addressLookup: {
+    position: 'relative',
+    zIndex: 10,
+  },
+  addressSuggestion: {
+    backgroundColor: colours.white,
+    borderBottomColor: colours.border,
+    borderBottomWidth: 1,
+    minHeight: 46,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+  },
+  addressSuggestionPressed: {
+    backgroundColor: '#E5F2EE',
+  },
+  addressSuggestionText: {
+    color: colours.text,
+    fontSize: 15,
+  },
+  addressSuggestions: {
+    backgroundColor: colours.white,
+    borderColor: colours.border,
+    borderRadius: 12,
+    borderWidth: 1,
+    boxShadow: '0 12px 28px rgba(24, 53, 47, 0.14)',
+    left: 0,
+    maxHeight: 280,
+    overflow: 'scroll',
+    position: 'absolute',
+    right: 0,
+    top: 78,
+    zIndex: 20,
+  },
   actionButton: {
     flex: 1,
     minWidth: 150,
@@ -614,6 +766,11 @@ const styles = StyleSheet.create({
     color: colours.text,
     fontSize: 14,
     fontWeight: '600',
+  },
+  lookupStatus: {
+    color: colours.muted,
+    fontSize: 13,
+    marginTop: 6,
   },
   step: {
     color: colours.accent,

@@ -74,6 +74,7 @@ class FakePropertyStore:
 
 def property_payload() -> dict[str, Any]:
     return {
+        "address_id": "GANSW123456789",
         "display_name": "Parramatta unit",
         "address_line_1": "10 Example Street",
         "address_line_2": None,

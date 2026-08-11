@@ -1,6 +1,8 @@
-import { fireEvent, render, waitFor } from '@testing-library/react-native';
+import { act, fireEvent, render, waitFor } from '@testing-library/react-native';
 
 import { PropertyForm } from '../src/features/properties/property-form';
+
+const lookupAddressesMock = jest.fn();
 
 async function fillPropertyDetails(view: Awaited<ReturnType<typeof render>>) {
   await fireEvent.changeText(view.getByLabelText('Property name'), 'Parramatta unit');
@@ -18,6 +20,10 @@ async function fillPropertyDetails(view: Awaited<ReturnType<typeof render>>) {
 }
 
 describe('PropertyForm', () => {
+  beforeEach(() => {
+    lookupAddressesMock.mockReset();
+  });
+
   it('does not leave the required details step when fields are missing', async () => {
     const view = await render(<PropertyForm onCancel={jest.fn()} onSubmit={jest.fn()} />);
 
@@ -47,5 +53,48 @@ describe('PropertyForm', () => {
         }),
       );
     });
+  });
+
+  it('waits 1.5 seconds after seven characters and prefills address fields on selection', async () => {
+    jest.useFakeTimers();
+    lookupAddressesMock.mockResolvedValue([
+      {
+        address_id: 'GAVIC421626446',
+        address_line_1: '21 MARIGOLD AV',
+        country: 'Australia',
+        formatted_address: '21 MARIGOLD AV, ALTONA NORTH VIC 3025',
+        postcode: '3025',
+        state: 'VIC',
+        suburb: 'ALTONA NORTH',
+      },
+    ]);
+    const view = await render(
+      <PropertyForm
+        accessToken="user-token"
+        onAddressLookup={lookupAddressesMock}
+        onCancel={jest.fn()}
+        onSubmit={jest.fn()}
+      />,
+    );
+
+    await fireEvent.changeText(view.getByLabelText('Find address'), '21 marigold');
+    await act(async () => {
+      jest.advanceTimersByTime(1499);
+    });
+    expect(lookupAddressesMock).not.toHaveBeenCalled();
+
+    await act(async () => {
+      jest.advanceTimersByTime(1);
+    });
+    expect(lookupAddressesMock).toHaveBeenCalledWith('21 marigold', 'user-token');
+
+    await fireEvent.press(
+      await view.findByRole('button', { name: '21 MARIGOLD AV, ALTONA NORTH VIC 3025' }),
+    );
+    expect(view.getByLabelText('Address line 1')).toHaveDisplayValue('21 MARIGOLD AV');
+    expect(view.getByLabelText('Suburb')).toHaveDisplayValue('ALTONA NORTH');
+    expect(view.getByLabelText('State')).toHaveDisplayValue('VIC');
+    expect(view.getByLabelText('Postcode')).toHaveDisplayValue('3025');
+    jest.useRealTimers();
   });
 });

@@ -8,6 +8,7 @@ import {
   useCreateProperty,
   useProperties,
 } from '../../src/features/properties/property-api';
+import { lookupAddressesWithSupabase } from '../../src/features/properties/address-lookup-api';
 import { PropertyForm } from '../../src/features/properties/property-form';
 import { colours } from '../../src/theme';
 
@@ -58,7 +59,12 @@ export default function PropertiesScreen() {
 
       {isAdding ? (
         <Card>
-          <PropertyForm onCancel={() => setIsAdding(false)} onSubmit={submitProperty} />
+          <PropertyForm
+            accessToken={session?.access_token}
+            onAddressLookup={lookupAddressesWithSupabase}
+            onCancel={() => setIsAdding(false)}
+            onSubmit={submitProperty}
+          />
         </Card>
       ) : null}
 

@@ -73,6 +73,7 @@ class PropertyCreate(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
+    address_id: str | None = Field(default=None, min_length=1, max_length=100)
     display_name: str = Field(min_length=1, max_length=120)
     address_line_1: str = Field(min_length=1, max_length=200)
     address_line_2: str | None = Field(default=None, max_length=200)
@@ -102,6 +103,7 @@ class PropertyCreate(BaseModel):
 
     @field_validator(
         "display_name",
+        "address_id",
         "address_line_1",
         "address_line_2",
         "suburb",

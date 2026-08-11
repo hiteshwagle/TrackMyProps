@@ -31,6 +31,8 @@ uv run python -m compileall -q src
 
 Development loads only `.env.development`; production loads only `.env.production`. Committed templates are `.env.development.example` and `.env.production.example`. The development file contains the local Supabase URL and publishable key. The production file contains placeholders and must be completed before production use.
 
+Backend environment parsing, defaults, and validation are centralized in `src/trackmyprops_backend/config.py`. The Supabase Edge Function is a separate Deno deployment and therefore maintains its non-secret settings in `../supabase/functions/address-lookup/app-settings.ts` rather than importing Python configuration.
+
 The root start commands validate the selected backend file before starting Uvicorn, so production fails before process startup while required configuration remains a placeholder.
 
 Never use a secret or service-role key for this integration. Production rejects loopback Supabase URLs, and each environment has an explicit CORS origin list.

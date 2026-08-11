@@ -12,8 +12,10 @@ const backendUrl = 'http://127.0.0.1:8000';
 
 function formValues(): PropertyFormValues {
   return {
+    addressId: 'GANSW123456789',
     addressLine1: '10 Example Street',
     addressLine2: '',
+    addressSearch: '10 Example Street, Parramatta NSW 2150',
     annualInterestRatePercent: '6.1',
     bathrooms: '1.5',
     bedrooms: '2.5',
@@ -59,6 +61,7 @@ function propertyResponse() {
 describe('property contracts', () => {
   it('builds a precise property request without binary floating-point rate conversion', () => {
     expect(propertyInput()).toMatchObject({
+      address_id: 'GANSW123456789',
       annual_interest_rate: { display_percent: '6.1', value: '0.061' },
       car_spaces: 1,
       current_value: { amount: '700000.00', currency: 'AUD' },
