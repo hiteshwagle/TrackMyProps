@@ -11,13 +11,16 @@ The current slice contains:
 - bottom tabs for Dashboard, Properties, Analytics, and Settings;
 - a two-step add/edit property form with Active and Archived property lists;
 - archive and restore actions that refresh property lists, Dashboard, and Analytics;
+- a protected property-details page for editing and managing income and expenses;
+- compact property cards with backend-calculated annual income and expense totals;
+- recurring and one-off date fields plus confirmed item removal;
 - active-portfolio property, asset, loan, and equity totals from the backend;
 - authenticated, debounced address suggestions through the Supabase Edge Function;
 - an authenticated current-user request to the local backend;
 - a manual account-deletion email action;
 - placeholder-only public configuration.
 
-Property writes call the authenticated backend; the frontend never writes the property table directly or calculates authoritative portfolio totals. Sold/remove workflows, archived-analytics preferences, income, expenses, cash-flow calculations, commercial integrations, and production credentials remain deferred.
+Property and cash-flow writes call the authenticated backend; the frontend never writes those tables directly or calculates authoritative totals. Monthly cash-flow views, sold/remove workflows, archived-analytics preferences, commercial integrations, and production credentials remain deferred.
 
 ## Requirements
 

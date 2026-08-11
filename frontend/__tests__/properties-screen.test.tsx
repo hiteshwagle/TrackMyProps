@@ -8,9 +8,9 @@ const mockSession = {
   user: { id: 'e8cf2dbf-463e-485f-880d-cdb828749979' },
 };
 const mockCreateProperty = jest.fn();
-const mockUpdateProperty = jest.fn();
 const mockUpdateStatus = jest.fn();
 const mockUseProperties = jest.fn();
+const mockRouterPush = jest.fn();
 
 jest.mock('../src/features/auth/auth-context', () => ({
   useAuth: () => ({ session: mockSession }),
@@ -20,16 +20,31 @@ jest.mock('../src/features/properties/address-lookup-api', () => ({
   lookupAddressesWithSupabase: jest.fn(),
 }));
 
+jest.mock('expo-router', () => ({
+  useRouter: () => ({ push: mockRouterPush }),
+}));
+
 jest.mock('../src/features/properties/property-api', () => {
   const actual = jest.requireActual('../src/features/properties/property-api');
   return {
     ...actual,
     useCreateProperty: () => ({ isPending: false, mutateAsync: mockCreateProperty }),
     useProperties: (...arguments_: unknown[]) => mockUseProperties(...arguments_),
-    useUpdateProperty: () => ({ isPending: false, mutateAsync: mockUpdateProperty }),
     useUpdatePropertyStatus: () => ({ isPending: false, mutateAsync: mockUpdateStatus }),
   };
 });
+
+jest.mock('../src/features/properties/property-cash-flow-api', () => ({
+  usePropertyCashFlowSummary: () => ({
+    data: {
+      period_year: 2026,
+      total_expenses: { amount: '5400.00', currency: 'AUD' },
+      total_income: { amount: '33800.00', currency: 'AUD' },
+    },
+    isError: false,
+    isPending: false,
+  }),
+}));
 
 const property: Property = {
   address_id: 'GAVIC421626446',
@@ -79,7 +94,7 @@ function propertyQuery(data: Property[]) {
 describe('PropertiesScreen', () => {
   beforeEach(() => {
     mockCreateProperty.mockReset();
-    mockUpdateProperty.mockReset();
+    mockRouterPush.mockReset();
     mockUpdateStatus.mockReset();
     mockUseProperties.mockReset();
     mockUseProperties.mockImplementation((_session, status) =>
@@ -91,16 +106,22 @@ describe('PropertiesScreen', () => {
     jest.useRealTimers();
   });
 
-  it('shows Active and Archived tabs and opens an existing property for editing', async () => {
+  it('shows compact annual totals and opens the property details page', async () => {
     const view = await render(<PropertiesScreen />);
 
     expect(view.getByRole('tab', { name: 'Active' })).toBeOnTheScreen();
     expect(view.getByRole('tab', { name: 'Archived' })).toBeOnTheScreen();
+    expect(view.getByText('Total income (annual): AUD 33800.00')).toBeOnTheScreen();
+    expect(view.getByText('Total expense (annual): AUD 5400.00')).toBeOnTheScreen();
+    expect(view.queryByRole('button', { name: 'Add income' })).not.toBeOnTheScreen();
+    expect(view.queryByRole('button', { name: 'Add expense' })).not.toBeOnTheScreen();
 
-    await fireEvent.press(view.getByRole('button', { name: 'Edit' }));
+    await fireEvent.press(view.getByRole('button', { name: 'View details' }));
 
-    expect(view.getByLabelText('Property name')).toHaveDisplayValue('Altona home');
-    expect(view.getByLabelText('Purchase date')).toHaveDisplayValue('2024-05-01');
+    expect(mockRouterPush).toHaveBeenCalledWith({
+      params: { propertyId: property.property_id },
+      pathname: '/property/[propertyId]',
+    });
   });
 
   it('archives a property and removes the success message after five seconds', async () => {

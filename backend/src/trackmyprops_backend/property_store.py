@@ -49,6 +49,13 @@ class PropertyStore(Protocol):
         page_size: int,
     ) -> tuple[list[Property], int]: ...
 
+    async def get(
+        self,
+        owner_user_id: UUID,
+        property_id: UUID,
+        access_token: str,
+    ) -> Property: ...
+
     async def update(
         self,
         owner_user_id: UUID,
@@ -280,6 +287,37 @@ class SupabasePropertyStore:
         except (IndexError, ValueError) as error:
             raise PropertyStoreUnavailableError from error
         return ([_property_from_database(record) for record in self._records(response)], total)
+
+    async def get(
+        self,
+        owner_user_id: UUID,
+        property_id: UUID,
+        access_token: str,
+    ) -> Property:
+        parameters = {
+            "id": f"eq.{property_id}",
+            "owner_user_id": f"eq.{owner_user_id}",
+            "deleted_at": "is.null",
+            "limit": "1",
+        }
+        try:
+            async with self._client() as client:
+                response = await client.get(
+                    f"{self._settings.supabase_url}/rest/v1/properties",
+                    headers=self._headers(access_token),
+                    params=parameters,
+                )
+        except httpx2.RequestError as error:
+            raise PropertyStoreUnavailableError from error
+
+        if response.status_code != 200:
+            raise PropertyStoreUnavailableError
+        records = self._records(response)
+        if not records:
+            raise PropertyNotFoundError
+        if len(records) != 1:
+            raise PropertyStoreUnavailableError
+        return _property_from_database(records[0])
 
     async def update(
         self,

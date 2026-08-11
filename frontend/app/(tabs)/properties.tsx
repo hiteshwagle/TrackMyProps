@@ -1,34 +1,35 @@
 import { useEffect, useState } from 'react';
+import { useRouter } from 'expo-router';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import type { Session } from '@supabase/supabase-js';
 
 import { BodyText, Button, Card, Message, Page, PageTitle } from '../../src/components/ui';
 import { appSettings } from '../../src/config/app-settings';
 import { useAuth } from '../../src/features/auth/auth-context';
 import { lookupAddressesWithSupabase } from '../../src/features/properties/address-lookup-api';
+import { usePropertyCashFlowSummary } from '../../src/features/properties/property-cash-flow-api';
 import {
   type Property,
   type PropertyCreate,
   type PropertyListStatus,
   useCreateProperty,
   useProperties,
-  useUpdateProperty,
   useUpdatePropertyStatus,
 } from '../../src/features/properties/property-api';
-import { PropertyForm, propertyFormValues } from '../../src/features/properties/property-form';
+import { PropertyForm } from '../../src/features/properties/property-form';
 import { colours } from '../../src/theme';
 
 export default function PropertiesScreen() {
   const { session } = useAuth();
+  const router = useRouter();
   const [selectedStatus, setSelectedStatus] = useState<PropertyListStatus>('active');
   const properties = useProperties(session, selectedStatus);
   const createProperty = useCreateProperty(session);
-  const updateProperty = useUpdateProperty(session);
   const updateStatus = useUpdatePropertyStatus(session);
   const [isAdding, setIsAdding] = useState(false);
-  const [editingProperty, setEditingProperty] = useState<Property | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
-  const isFormOpen = isAdding || editingProperty !== null;
+  const isFormOpen = isAdding;
 
   useEffect(() => {
     if (!successMessage) {
@@ -43,7 +44,6 @@ export default function PropertiesScreen() {
 
   function closeForm() {
     setIsAdding(false);
-    setEditingProperty(null);
   }
 
   function selectList(status: PropertyListStatus) {
@@ -54,16 +54,8 @@ export default function PropertiesScreen() {
 
   async function submitProperty(propertyInput: PropertyCreate): Promise<string | null> {
     try {
-      if (editingProperty) {
-        const updated = await updateProperty.mutateAsync({
-          propertyId: editingProperty.property_id,
-          propertyInput,
-        });
-        setSuccessMessage(`${updated.display_name} was updated successfully.`);
-      } else {
-        const created = await createProperty.mutateAsync(propertyInput);
-        setSuccessMessage(`${created.display_name} was added successfully.`);
-      }
+      const created = await createProperty.mutateAsync(propertyInput);
+      setSuccessMessage(`${created.display_name} was added successfully.`);
       closeForm();
       return null;
     } catch (error) {
@@ -139,8 +131,7 @@ export default function PropertiesScreen() {
         <Card>
           <PropertyForm
             accessToken={session?.access_token}
-            initialValues={editingProperty ? propertyFormValues(editingProperty) : undefined}
-            key={editingProperty?.property_id ?? 'new-property'}
+            key="new-property"
             onAddressLookup={lookupAddressesWithSupabase}
             onCancel={closeForm}
             onSubmit={submitProperty}
@@ -166,55 +157,19 @@ export default function PropertiesScreen() {
       {!isFormOpen && properties.data?.length ? (
         <View style={styles.list}>
           {properties.data.map((property) => (
-            <Card key={property.property_id}>
-              <View style={styles.propertyHeader}>
-                <View style={styles.headerText}>
-                  <Text style={styles.heading}>{property.display_name}</Text>
-                  <BodyText>
-                    {property.address_line_1}, {property.suburb} {property.state}{' '}
-                    {property.postcode}
-                  </BodyText>
-                </View>
-                <Text style={styles.status}>{property.status}</Text>
-              </View>
-              <View style={styles.details}>
-                <Text style={styles.detail}>
-                  Purchase price: AUD {property.purchase_price.amount}
-                </Text>
-                <Text style={styles.detail}>
-                  Current value:{' '}
-                  {property.current_value ? `AUD ${property.current_value.amount}` : 'Not supplied'}
-                </Text>
-                <Text style={styles.detail}>
-                  Remaining loan:{' '}
-                  {property.remaining_loan_balance
-                    ? `AUD ${property.remaining_loan_balance.amount}`
-                    : 'Not supplied'}
-                </Text>
-              </View>
-              <View style={styles.actions}>
-                <View style={styles.actionButton}>
-                  <Button
-                    onPress={() => {
-                      setActionError(null);
-                      setEditingProperty(property);
-                    }}
-                    variant="secondary"
-                  >
-                    Edit
-                  </Button>
-                </View>
-                <View style={styles.actionButton}>
-                  <Button
-                    disabled={updateStatus.isPending}
-                    onPress={() => void changePropertyStatus(property)}
-                    variant="secondary"
-                  >
-                    {property.status === 'active' ? 'Archive' : 'Mark as active'}
-                  </Button>
-                </View>
-              </View>
-            </Card>
+            <PropertyListCard
+              isStatusPending={updateStatus.isPending}
+              key={property.property_id}
+              onChangeStatus={() => void changePropertyStatus(property)}
+              onView={() =>
+                router.push({
+                  pathname: '/property/[propertyId]',
+                  params: { propertyId: property.property_id },
+                })
+              }
+              property={property}
+              session={session}
+            />
           ))}
         </View>
       ) : null}
@@ -225,6 +180,69 @@ export default function PropertiesScreen() {
         </Button>
       ) : null}
     </Page>
+  );
+}
+
+function PropertyListCard({
+  isStatusPending,
+  onChangeStatus,
+  onView,
+  property,
+  session,
+}: {
+  isStatusPending: boolean;
+  onChangeStatus: () => void;
+  onView: () => void;
+  property: Property;
+  session: Session | null;
+}) {
+  const summary = usePropertyCashFlowSummary(session, property.property_id);
+  const totalIncome = summary.data ? `AUD ${summary.data.total_income.amount}` : 'Loading…';
+  const totalExpense = summary.data ? `AUD ${summary.data.total_expenses.amount}` : 'Loading…';
+
+  return (
+    <Card>
+      <View style={styles.propertyHeader}>
+        <View style={styles.headerText}>
+          <Text style={styles.heading}>{property.display_name}</Text>
+          <BodyText>
+            {property.address_line_1}, {property.suburb} {property.state} {property.postcode}
+          </BodyText>
+        </View>
+        <Text style={styles.status}>{property.status}</Text>
+      </View>
+      <View style={styles.details}>
+        <Text style={styles.detail}>Purchase price: AUD {property.purchase_price.amount}</Text>
+        <Text style={styles.detail}>
+          Current value:{' '}
+          {property.current_value ? `AUD ${property.current_value.amount}` : 'Not supplied'}
+        </Text>
+        <Text style={styles.detail}>
+          Remaining loan:{' '}
+          {property.remaining_loan_balance
+            ? `AUD ${property.remaining_loan_balance.amount}`
+            : 'Not supplied'}
+        </Text>
+        <Text style={styles.detail}>
+          Total income (annual): {summary.isError ? 'Unavailable' : totalIncome}
+        </Text>
+        <Text style={styles.detail}>
+          Total expense (annual): {summary.isError ? 'Unavailable' : totalExpense}
+        </Text>
+      </View>
+      <View style={styles.actions}>
+        <View style={styles.actionButton}>
+          <Button onPress={onView} variant="secondary">
+            View details
+          </Button>
+        </View>
+        <View style={styles.actionButton}>
+          <Button disabled={isStatusPending} onPress={onChangeStatus} variant="secondary">
+            {property.status === 'active' ? 'Archive' : 'Mark as active'}
+          </Button>
+        </View>
+      </View>
+    </Card>
   );
 }
 

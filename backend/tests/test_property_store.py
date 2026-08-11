@@ -110,6 +110,43 @@ async def test_list_applies_explicit_owner_and_active_filters() -> None:
 
 
 @pytest.mark.anyio
+async def test_get_is_owner_scoped_and_excludes_deleted_records() -> None:
+    def handler(request: httpx2.Request) -> httpx2.Response:
+        assert request.method == "GET"
+        assert request.url.params["id"] == "eq.919d97fd-64cb-4eb6-8349-0fc0c78b1285"
+        assert request.url.params["owner_user_id"] == f"eq.{OWNER_ID}"
+        assert request.url.params["deleted_at"] == "is.null"
+        assert request.url.params["limit"] == "1"
+        assert request.headers["Authorization"] == "Bearer valid-access-token"
+        return httpx2.Response(200, json=[database_record()])
+
+    store = SupabasePropertyStore(SETTINGS, transport=httpx2.MockTransport(handler))
+
+    property_record = await store.get(
+        OWNER_ID,
+        UUID("919d97fd-64cb-4eb6-8349-0fc0c78b1285"),
+        "valid-access-token",
+    )
+
+    assert property_record.owner_user_id == OWNER_ID
+
+
+@pytest.mark.anyio
+async def test_get_hides_records_not_visible_through_rls() -> None:
+    store = SupabasePropertyStore(
+        SETTINGS,
+        transport=httpx2.MockTransport(lambda _request: httpx2.Response(200, json=[])),
+    )
+
+    with pytest.raises(PropertyNotFoundError):
+        await store.get(
+            OWNER_ID,
+            UUID("919d97fd-64cb-4eb6-8349-0fc0c78b1285"),
+            "valid-access-token",
+        )
+
+
+@pytest.mark.anyio
 async def test_update_details_is_owner_scoped_and_returns_the_updated_record() -> None:
     def handler(request: httpx2.Request) -> httpx2.Response:
         assert request.method == "PATCH"

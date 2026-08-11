@@ -10,14 +10,20 @@ GET /ready
 GET /api/v1/me
 GET /api/v1/properties?status=active|archived
 POST /api/v1/properties
+GET /api/v1/properties/{property_id}
 PUT /api/v1/properties/{property_id}
 PATCH /api/v1/properties/{property_id}/status
+GET|POST /api/v1/properties/{property_id}/income
+DELETE /api/v1/income/{item_id}
+GET|POST /api/v1/properties/{property_id}/expenses
+DELETE /api/v1/expenses/{item_id}
+GET /api/v1/properties/{property_id}/cash-flow-summary?year=2026
 GET /api/v1/portfolio/summary
 ```
 
 Authenticated endpoints require a Supabase bearer token. The backend verifies the token through the local Supabase Auth `/auth/v1/user` endpoint using a publishable key. User metadata is display-only and is never used for authorisation.
 
-Property endpoints derive `owner_user_id` from the verified identity and use the caller's JWT when accessing Supabase's Data API, preserving database RLS. Owners can list active or archived properties, replace editable details, and archive or restore records. The portfolio summary calculates active-property asset, loan, and equity totals using `Decimal`, reports missing-input counts, and never converts missing values to zero. The backend has no service-role key, direct privileged database credential, or commercial provider. Readiness returns `503` when Supabase Auth is missing or unreachable; liveness remains independent.
+Property endpoints derive `owner_user_id` from the verified identity and use the caller's JWT when accessing Supabase's Data API, preserving database RLS. Owners can retrieve, list, edit, archive, or restore properties and add or remove current income and expense definitions. The versioned annual summary normalises weekly, fortnightly, monthly, quarterly, and annual recurring definitions and includes one-off items only in the selected year. It does not prorate recurring definitions that cover only part of a year. Money calculations use `Decimal` with explicit `AUD` currency. The backend has no service-role key, direct privileged database credential, or commercial provider. Readiness returns `503` when Supabase Auth is missing or unreachable; liveness remains independent.
 
 ## Commands
 

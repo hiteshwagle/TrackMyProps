@@ -2,6 +2,7 @@ import {
   createProperty,
   fetchPortfolioSummary,
   fetchProperties,
+  fetchProperty,
   type PropertyCreate,
   updateProperty,
   updatePropertyStatus,
@@ -121,6 +122,25 @@ describe('property contracts', () => {
       `${backendUrl}/api/v1/properties?status=active`,
       expect.any(Object),
     );
+  });
+
+  it('gets one property for the details page', async () => {
+    const fetchImplementation = jest.fn(async (url: string | URL | Request) => {
+      expect(String(url)).toBe(`${backendUrl}/api/v1/properties/${propertyResponse().property_id}`);
+      return new Response(JSON.stringify(propertyResponse()), {
+        headers: { 'Content-Type': 'application/json' },
+        status: 200,
+      });
+    });
+
+    const property = await fetchProperty(
+      'access-token',
+      propertyResponse().property_id,
+      backendUrl,
+      fetchImplementation,
+    );
+
+    expect(property.display_name).toBe('Parramatta unit');
   });
 
   it('creates a property only through the backend API', async () => {

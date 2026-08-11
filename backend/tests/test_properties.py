@@ -79,6 +79,16 @@ class FakePropertyStore:
         items = [item for item in self.items if item.status.value == status.value]
         return items, len(items)
 
+    async def get(
+        self,
+        owner_user_id: UUID,
+        property_id: UUID,
+        access_token: str,
+    ) -> Property:
+        self.created_for = owner_user_id
+        self.access_token = access_token
+        return self._find(property_id)
+
     async def update(
         self,
         owner_user_id: UUID,
@@ -221,6 +231,37 @@ def test_list_properties_returns_only_store_results(
         "has_previous": False,
     }
     assert property_store.created_for == OWNER_ID
+
+
+def test_owner_can_get_one_property(
+    client: TestClient,
+    property_store: FakePropertyStore,
+) -> None:
+    client.post(
+        "/api/v1/properties",
+        headers={"Authorization": "Bearer valid-access-token"},
+        json=property_payload(),
+    )
+
+    response = client.get(
+        f"/api/v1/properties/{PROPERTY_ID}",
+        headers={"Authorization": "Bearer valid-access-token"},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["property_id"] == str(PROPERTY_ID)
+    assert property_store.created_for == OWNER_ID
+    assert property_store.access_token == "valid-access-token"
+
+
+def test_unknown_property_read_does_not_reveal_another_owner(client: TestClient) -> None:
+    response = client.get(
+        f"/api/v1/properties/{uuid4()}",
+        headers={"Authorization": "Bearer valid-access-token"},
+    )
+
+    assert response.status_code == 404
+    assert response.json()["error"]["code"] == "PROPERTY_NOT_FOUND"
 
 
 def test_list_properties_filters_archived_records(

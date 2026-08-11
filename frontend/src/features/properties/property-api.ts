@@ -137,6 +137,8 @@ export type PropertyCreate = {
 
 export const propertyKeys = {
   all: ['properties'] as const,
+  detail: (userId: string | undefined, propertyId: string) =>
+    [...propertyKeys.all, 'detail', userId, propertyId] as const,
   list: (userId: string | undefined, status: PropertyListStatus) =>
     [...propertyKeys.all, 'list', userId, status] as const,
 };
@@ -161,7 +163,7 @@ function backendConfigurationError(backendUrl: string): string | null {
   );
 }
 
-async function backendRequest(
+export async function backendRequest(
   path: string,
   accessToken: string,
   init: RequestInit,
@@ -224,6 +226,30 @@ export async function fetchProperties(
     );
   }
   return parsed.data.items;
+}
+
+export async function fetchProperty(
+  accessToken: string,
+  propertyId: string,
+  backendUrl = publicConfig.backendUrl,
+  fetchImplementation: typeof fetch = fetch,
+): Promise<Property> {
+  const payload = await backendRequest(
+    `/api/v1/properties/${propertyId}`,
+    accessToken,
+    { method: 'GET' },
+    backendUrl,
+    fetchImplementation,
+  );
+  const parsed = propertySchema.safeParse(payload);
+  if (!parsed.success) {
+    throw new BackendApiError(
+      'The backend returned an invalid property.',
+      200,
+      'INVALID_BACKEND_RESPONSE',
+    );
+  }
+  return parsed.data;
 }
 
 export async function fetchPortfolioSummary(
@@ -328,6 +354,14 @@ export function useProperties(session: Session | null, status: PropertyListStatu
     enabled: Boolean(session),
     queryFn: () => fetchProperties(session?.access_token || '', status),
     queryKey: propertyKeys.list(session?.user.id, status),
+  });
+}
+
+export function useProperty(session: Session | null, propertyId: string) {
+  return useQuery({
+    enabled: Boolean(session && propertyId),
+    queryFn: () => fetchProperty(session?.access_token || '', propertyId),
+    queryKey: propertyKeys.detail(session?.user.id, propertyId),
   });
 }
 

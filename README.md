@@ -1,8 +1,8 @@
 # TrackMyProps
 
-TrackMyProps is an Australia-focused property-investment platform. This repository contains the Phase 0 scaffold, owner-only identity integration, the first property create/list vertical slice, and a development-only authenticated address lookup adapter.
+TrackMyProps is an Australia-focused property-investment platform. This repository contains the Phase 0 scaffold, owner identity integration, property portfolio management, owner-entered income and expenses, and a development-only authenticated address lookup adapter.
 
-Property editing, lifecycle management, income, expenses, portfolio analytics, billing, AI agents, and production provider integrations are not implemented yet.
+Cash-flow analytics, property sale/removal, billing, AI agents, and production provider integrations are not implemented yet.
 
 ## Repository structure
 
@@ -27,7 +27,7 @@ TrackMyProps is a monorepo. The four application projects are kept separate so t
 
 The user-facing Expo React Native application, written in strict TypeScript. It authenticates users through Supabase and will call the backend API for portfolio workflows. It must not contain authoritative financial calculations, permission decisions, database credentials, service-role keys, AI-provider secrets, or direct commercial-provider integrations.
 
-The current web-first slice contains email/password authentication against local Supabase, protected bottom navigation, linked Terms acceptance, a manual deletion-request email action, an authenticated current-user call, and a two-step property create/list experience. The property form can call the authenticated address Edge Function after a 1.5-second debounce and prefill only provider-supported address fields. Financial totals and lifecycle actions remain deferred.
+The current web-first slice contains email/password authentication against local Supabase, protected bottom navigation, linked Terms acceptance, a manual deletion-request email action, property create/edit/archive/restore, a protected property-details page, owner-entered income and expense items, annual property cash-flow totals, and active-portfolio asset, loan, and equity totals. The property form can call the authenticated address Edge Function after a 1.5-second debounce and prefill only provider-supported address fields.
 
 Frontend non-secret application behaviour is centralized in `frontend/src/config/app-settings.ts`; environment-specific public values are loaded in `frontend/src/config/public-config.ts`.
 
@@ -35,7 +35,7 @@ Frontend non-secret application behaviour is centralized in `frontend/src/config
 
 The Python FastAPI service that will be the authoritative application and business layer. It will eventually own authentication validation, owner authorisation, property and financial records, deterministic calculations, audit events, exports, and deletion workflows. Household access and collaboration remain post-MVP.
 
-The backend exposes health/readiness, authenticated identity, and authenticated property create/list endpoints. It validates bearer tokens through Supabase Auth and uses the caller's JWT for RLS-protected property persistence. It accepts an optional canonical provider address ID but has no service-role key, privileged database credential, analytics calculations, or direct commercial-provider integration.
+The backend exposes health/readiness, authenticated identity, property lifecycle, portfolio summary, property income/expense, and versioned annual cash-flow summary endpoints. It validates bearer tokens through Supabase Auth and uses the caller's JWT for RLS-protected persistence. It accepts an optional canonical provider address ID but has no service-role key, privileged database credential, or direct commercial-provider integration.
 
 FastAPI environment configuration is centralized in `backend/src/trackmyprops_backend/config.py`. The separately deployed address Edge Function has its own `supabase/functions/address-lookup/app-settings.ts` because Deno cannot import the Python service's runtime configuration.
 
@@ -55,13 +55,13 @@ Phase 0 contains one deterministic example job and its tests. It has no source c
 
 The executable source of truth for versioned OpenAPI definitions, JSON Schemas, event contracts, and synthetic examples. Keeping contracts independent allows the four projects to agree on interfaces without importing another project's implementation.
 
-The shared foundation defines health, API-version metadata, errors, money, rates, pagination, idempotency, and the common event envelope. Backend OpenAPI now also defines the first owner-property create/list contract.
+The shared foundation defines health, API-version metadata, errors, money, rates, pagination, idempotency, and the common event envelope. Backend OpenAPI also defines identity, property lifecycle, portfolio summary, and property income/expense contracts.
 
 ### `supabase`
 
-The migration and Edge Function boundary for Supabase. Migrations create owner-scoped properties and a server-only normalized provider-address table with RLS.
+The migration and Edge Function boundary for Supabase. Migrations create owner-scoped properties, property cash-flow items, and a server-only normalized provider-address table with RLS.
 
-The property migration grants authenticated owners only the required select, insert, and update access to their own non-deleted rows. The authenticated address lookup function holds no committed credential and is not approved for production until provider rights are verified. Storage, Realtime, project links, and credentials remain absent. Generated Supabase temporary state is ignored by Git.
+The property and cash-flow migrations grant authenticated owners only the operations required for their own non-deleted property records. The authenticated address lookup function holds no committed credential and is not approved for production until provider rights are verified. Storage, Realtime, project links, and credentials remain absent. Generated Supabase temporary state is ignored by Git.
 
 ### `infrastructure`
 
@@ -157,4 +157,4 @@ The publishable key is suitable for frontend use; secret and service-role keys a
 
 ## Next phase
 
-The next small property slice should add retrieve/edit behaviour, followed separately by archive/sold/remove lifecycle actions. See `markdown files/mvp-owner-portfolio-scope.md`.
+The next small financial slice should add a backend-owned monthly cash-flow view and present income and expense totals in Analytics. See `markdown files/mvp-owner-portfolio-scope.md`.

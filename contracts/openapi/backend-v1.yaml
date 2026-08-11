@@ -1,8 +1,8 @@
 openapi: 3.1.0
 info:
   title: TrackMyProps Backend API
-  version: 1.3.0
-  description: Operational, authenticated identity, and owner property endpoints.
+  version: 1.5.0
+  description: Operational, authenticated identity, owner property, and cash-flow endpoints.
 x-api-major-version: v1
 paths:
   /health:
@@ -169,6 +169,40 @@ paths:
               schema:
                 $ref: ../json-schema/errors/error-response.schema.json
   /api/v1/properties/{property_id}:
+    get:
+      operationId: getProperty
+      summary: Retrieve one owner-visible property
+      tags:
+        - Properties
+      security:
+        - supabaseBearer: []
+      parameters:
+        - $ref: "#/components/parameters/PropertyId"
+      responses:
+        "200":
+          description: One non-deleted property visible to the authenticated owner.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Property"
+        "401":
+          description: Authentication is missing or invalid.
+          content:
+            application/json:
+              schema:
+                $ref: ../json-schema/errors/error-response.schema.json
+        "404":
+          description: No owner-visible property matched the identifier.
+          content:
+            application/json:
+              schema:
+                $ref: ../json-schema/errors/error-response.schema.json
+        "503":
+          description: Property persistence is unavailable.
+          content:
+            application/json:
+              schema:
+                $ref: ../json-schema/errors/error-response.schema.json
     put:
       operationId: updateProperty
       summary: Replace the editable details of an owner property
@@ -262,6 +296,264 @@ paths:
             application/json:
               schema:
                 $ref: ../json-schema/errors/error-response.schema.json
+  /api/v1/properties/{property_id}/income:
+    get:
+      operationId: listPropertyIncome
+      summary: List income items for an owner property
+      tags:
+        - Cash flow
+      security:
+        - supabaseBearer: []
+      parameters:
+        - $ref: "#/components/parameters/PropertyId"
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/PageSize"
+      responses:
+        "200":
+          description: Owner-visible income definitions for the property.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CashFlowItemList"
+        "401":
+          description: Authentication is missing or invalid.
+          content:
+            application/json:
+              schema:
+                $ref: ../json-schema/errors/error-response.schema.json
+        "503":
+          description: Cash-flow persistence is unavailable.
+          content:
+            application/json:
+              schema:
+                $ref: ../json-schema/errors/error-response.schema.json
+    post:
+      operationId: createPropertyIncome
+      summary: Add an income item to an owner property
+      tags:
+        - Cash flow
+      security:
+        - supabaseBearer: []
+      parameters:
+        - $ref: "#/components/parameters/PropertyId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CashFlowItemCreate"
+      responses:
+        "201":
+          description: The income item was created.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CashFlowItem"
+        "401":
+          description: Authentication is missing or invalid.
+          content:
+            application/json:
+              schema:
+                $ref: ../json-schema/errors/error-response.schema.json
+        "404":
+          description: No owner-visible property matched the identifier.
+          content:
+            application/json:
+              schema:
+                $ref: ../json-schema/errors/error-response.schema.json
+        "422":
+          description: Income values failed validation or database constraints.
+          content:
+            application/json:
+              schema:
+                $ref: ../json-schema/errors/error-response.schema.json
+        "503":
+          description: Cash-flow persistence is unavailable.
+          content:
+            application/json:
+              schema:
+                $ref: ../json-schema/errors/error-response.schema.json
+  /api/v1/income/{item_id}:
+    delete:
+      operationId: deletePropertyIncome
+      summary: Remove an income item from an owner property
+      tags:
+        - Cash flow
+      security:
+        - supabaseBearer: []
+      parameters:
+        - $ref: "#/components/parameters/ItemId"
+      responses:
+        "204":
+          description: The income item was removed.
+        "401":
+          description: Authentication is missing or invalid.
+          content:
+            application/json:
+              schema:
+                $ref: ../json-schema/errors/error-response.schema.json
+        "404":
+          description: No owner-visible property or income item matched the identifiers.
+          content:
+            application/json:
+              schema:
+                $ref: ../json-schema/errors/error-response.schema.json
+        "503":
+          description: Cash-flow persistence is unavailable.
+          content:
+            application/json:
+              schema:
+                $ref: ../json-schema/errors/error-response.schema.json
+  /api/v1/properties/{property_id}/expenses:
+    get:
+      operationId: listPropertyExpenses
+      summary: List expense items for an owner property
+      tags:
+        - Cash flow
+      security:
+        - supabaseBearer: []
+      parameters:
+        - $ref: "#/components/parameters/PropertyId"
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/PageSize"
+      responses:
+        "200":
+          description: Owner-visible expense definitions for the property.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CashFlowItemList"
+        "401":
+          description: Authentication is missing or invalid.
+          content:
+            application/json:
+              schema:
+                $ref: ../json-schema/errors/error-response.schema.json
+        "503":
+          description: Cash-flow persistence is unavailable.
+          content:
+            application/json:
+              schema:
+                $ref: ../json-schema/errors/error-response.schema.json
+    post:
+      operationId: createPropertyExpense
+      summary: Add an expense item to an owner property
+      tags:
+        - Cash flow
+      security:
+        - supabaseBearer: []
+      parameters:
+        - $ref: "#/components/parameters/PropertyId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CashFlowItemCreate"
+      responses:
+        "201":
+          description: The expense item was created.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CashFlowItem"
+        "401":
+          description: Authentication is missing or invalid.
+          content:
+            application/json:
+              schema:
+                $ref: ../json-schema/errors/error-response.schema.json
+        "404":
+          description: No owner-visible property matched the identifier.
+          content:
+            application/json:
+              schema:
+                $ref: ../json-schema/errors/error-response.schema.json
+        "422":
+          description: Expense values failed validation or database constraints.
+          content:
+            application/json:
+              schema:
+                $ref: ../json-schema/errors/error-response.schema.json
+        "503":
+          description: Cash-flow persistence is unavailable.
+          content:
+            application/json:
+              schema:
+                $ref: ../json-schema/errors/error-response.schema.json
+  /api/v1/expenses/{item_id}:
+    delete:
+      operationId: deletePropertyExpense
+      summary: Remove an expense item from an owner property
+      tags:
+        - Cash flow
+      security:
+        - supabaseBearer: []
+      parameters:
+        - $ref: "#/components/parameters/ItemId"
+      responses:
+        "204":
+          description: The expense item was removed.
+        "401":
+          description: Authentication is missing or invalid.
+          content:
+            application/json:
+              schema:
+                $ref: ../json-schema/errors/error-response.schema.json
+        "404":
+          description: No owner-visible property or expense item matched the identifiers.
+          content:
+            application/json:
+              schema:
+                $ref: ../json-schema/errors/error-response.schema.json
+        "503":
+          description: Cash-flow persistence is unavailable.
+          content:
+            application/json:
+              schema:
+                $ref: ../json-schema/errors/error-response.schema.json
+  /api/v1/properties/{property_id}/cash-flow-summary:
+    get:
+      operationId: getPropertyCashFlowSummary
+      summary: Retrieve annualised income and expense totals for one owner property
+      tags:
+        - Cash flow
+      security:
+        - supabaseBearer: []
+      parameters:
+        - $ref: "#/components/parameters/PropertyId"
+        - name: year
+          in: query
+          description: Calendar year; defaults to the backend's current year.
+          schema:
+            type: integer
+            minimum: 2000
+            maximum: 9999
+      responses:
+        "200":
+          description: Annualised recurring definitions plus one-offs in the selected year.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PropertyCashFlowSummary"
+        "401":
+          description: Authentication is missing or invalid.
+          content:
+            application/json:
+              schema:
+                $ref: ../json-schema/errors/error-response.schema.json
+        "404":
+          description: No owner-visible property matched the identifier.
+          content:
+            application/json:
+              schema:
+                $ref: ../json-schema/errors/error-response.schema.json
+        "503":
+          description: Property or cash-flow persistence is unavailable.
+          content:
+            application/json:
+              schema:
+                $ref: ../json-schema/errors/error-response.schema.json
   /api/v1/portfolio/summary:
     get:
       operationId: getPortfolioSummary
@@ -298,6 +590,28 @@ components:
       schema:
         type: string
         format: uuid
+    ItemId:
+      name: item_id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    Page:
+      name: page
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        default: 1
+    PageSize:
+      name: page_size
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 25
   schemas:
     Money:
       type: object
@@ -338,6 +652,129 @@ components:
         currency:
           type: string
           const: AUD
+    PositiveMoney:
+      type: object
+      additionalProperties: false
+      required:
+        - amount
+        - currency
+      properties:
+        amount:
+          type: string
+          pattern: "^(?=.*[1-9])[0-9]+(?:\\.[0-9]{1,2})?$"
+        currency:
+          type: string
+          const: AUD
+    CashFlowItemCreate:
+      type: object
+      additionalProperties: false
+      required:
+        - name
+        - amount
+        - frequency
+        - start_date
+        - end_date
+        - occurrence_date
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+        amount:
+          $ref: "#/components/schemas/PositiveMoney"
+        frequency:
+          type: string
+          enum: [weekly, fortnightly, monthly, quarterly, annually, one_off]
+        start_date:
+          type:
+            - string
+            - "null"
+          format: date
+        end_date:
+          type:
+            - string
+            - "null"
+          format: date
+        occurrence_date:
+          type:
+            - string
+            - "null"
+          format: date
+    CashFlowItem:
+      allOf:
+        - $ref: "#/components/schemas/CashFlowItemCreate"
+        - type: object
+          required:
+            - item_id
+            - property_id
+            - item_type
+            - created_at
+            - updated_at
+          properties:
+            item_id:
+              type: string
+              format: uuid
+            property_id:
+              type: string
+              format: uuid
+            item_type:
+              type: string
+              enum: [income, expense]
+            created_at:
+              type: string
+              format: date-time
+            updated_at:
+              type: string
+              format: date-time
+    CashFlowItemList:
+      type: object
+      additionalProperties: false
+      required:
+        - items
+        - pagination
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/CashFlowItem"
+        pagination:
+          $ref: ../json-schema/common/pagination.schema.json
+    PropertyCashFlowSummary:
+      type: object
+      additionalProperties: false
+      required:
+        - calculation_version
+        - property_id
+        - period
+        - period_year
+        - total_income
+        - total_expenses
+        - income_item_count
+        - expense_item_count
+      properties:
+        calculation_version:
+          type: string
+          const: property-cash-flow-summary:1.0.0
+        property_id:
+          type: string
+          format: uuid
+        period:
+          type: string
+          const: annual
+        period_year:
+          type: integer
+          minimum: 2000
+          maximum: 9999
+        total_income:
+          $ref: "#/components/schemas/PortfolioMoney"
+        total_expenses:
+          $ref: "#/components/schemas/PortfolioMoney"
+        income_item_count:
+          type: integer
+          minimum: 0
+        expense_item_count:
+          type: integer
+          minimum: 0
     PropertyCreate:
       type: object
       additionalProperties: false
@@ -565,5 +1002,7 @@ tags:
     description: Identity derived from backend-verified Supabase access tokens.
   - name: Properties
     description: Owner-scoped property creation, retrieval, editing, and lifecycle changes.
+  - name: Cash flow
+    description: Owner-scoped property income and expense definitions.
   - name: Portfolio
     description: Authoritative owner portfolio summaries.

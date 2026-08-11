@@ -59,6 +59,11 @@ OPENAPI_PATHS = {
         "/api/v1/properties",
         "/api/v1/properties/{property_id}",
         "/api/v1/properties/{property_id}/status",
+        "/api/v1/properties/{property_id}/income",
+        "/api/v1/income/{item_id}",
+        "/api/v1/properties/{property_id}/expenses",
+        "/api/v1/properties/{property_id}/cash-flow-summary",
+        "/api/v1/expenses/{item_id}",
         "/api/v1/portfolio/summary",
     },
 }

@@ -1,22 +1,22 @@
 # TrackMyProps Shared Contracts
 
-This directory is the executable source of truth for versioned TrackMyProps wire contracts. It contains the shared foundation, authenticated identity, and first owner-property API contract. Household, billing, provider, and AI-agent contracts remain deferred.
+This directory is the executable source of truth for versioned TrackMyProps wire contracts. It contains the shared foundation plus authenticated identity, property, portfolio summary, income, expense, and annual property cash-flow summary contracts. Household, billing, provider, and AI-agent contracts remain deferred.
 
 ## Contract inventory
 
-| Contract             | Source                                                | Purpose                                             |
-| -------------------- | ----------------------------------------------------- | --------------------------------------------------- |
-| Backend API v1       | `openapi/backend-v1.yaml`                             | Operations, identity, and owner property routes      |
-| AI-platform API v1   | `openapi/ai-platform-v1.yaml`                         | Current internal AI health and readiness routes     |
-| Health response      | `json-schema/common/health-response.schema.json`      | Direct operational status response                  |
-| API version metadata | `json-schema/common/api-version-metadata.schema.json` | API, contract, service, request, and trace metadata |
-| Money                | `json-schema/common/money.schema.json`                | Decimal-string amount with ISO 4217 currency        |
-| Rate                 | `json-schema/common/rate.schema.json`                 | Decimal-form rate and derived display percentage    |
-| Pagination           | `json-schema/common/pagination.schema.json`           | Page or cursor metadata selected per endpoint       |
-| Idempotency key      | `json-schema/common/idempotency-key.schema.json`      | Safe `X-Idempotency-Key` value                      |
-| Error response       | `json-schema/errors/error-response.schema.json`       | Stable error with request and trace correlation     |
-| Current user         | `json-schema/identity/current-user.schema.json`       | Backend-verified Supabase identity                  |
-| Event envelope       | `events/common.schema.json`                           | Immutable, transport-neutral event metadata         |
+| Contract             | Source                                                | Purpose                                                    |
+| -------------------- | ----------------------------------------------------- | ---------------------------------------------------------- |
+| Backend API v1       | `openapi/backend-v1.yaml`                             | Operations, identity, property, and cash-flow routes       |
+| AI-platform API v1   | `openapi/ai-platform-v1.yaml`                         | Current internal AI health and readiness routes            |
+| Health response      | `json-schema/common/health-response.schema.json`      | Direct operational status response                         |
+| API version metadata | `json-schema/common/api-version-metadata.schema.json` | API, contract, service, request, and trace metadata        |
+| Money                | `json-schema/common/money.schema.json`                | Decimal-string amount with ISO 4217 currency               |
+| Rate                 | `json-schema/common/rate.schema.json`                 | Decimal-form rate and derived display percentage           |
+| Pagination           | `json-schema/common/pagination.schema.json`           | Page or cursor metadata selected per endpoint              |
+| Idempotency key      | `json-schema/common/idempotency-key.schema.json`      | Safe `X-Idempotency-Key` value                             |
+| Error response       | `json-schema/errors/error-response.schema.json`       | Stable error with request and trace correlation            |
+| Current user         | `json-schema/identity/current-user.schema.json`       | Backend-verified Supabase identity                         |
+| Event envelope       | `events/common.schema.json`                           | Immutable, transport-neutral event metadata                |
 
 `registry.yaml` records versions, ownership roles, consumers, and source paths. Synthetic examples under `examples/` are validated in CI.
 

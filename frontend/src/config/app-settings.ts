@@ -8,6 +8,10 @@ export const appSettings = {
   feedback: {
     successMessageDurationMilliseconds: 5_000,
   },
+  propertyCashFlow: {
+    expenseSuggestedNames: ['Council rates', 'Insurance', 'Maintenance', 'Property management'],
+    incomeSuggestedNames: ['Rent'],
+  },
   supabaseFunctions: {
     addressLookup: 'address-lookup',
   },

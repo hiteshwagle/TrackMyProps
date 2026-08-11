@@ -2,6 +2,7 @@
 
 from collections.abc import Awaitable
 from dataclasses import dataclass
+from datetime import date
 from decimal import Decimal
 from typing import Annotated, Literal
 from uuid import UUID, uuid4
@@ -22,6 +23,21 @@ from trackmyprops_backend.auth import (
     AuthGateway,
     CurrentUser,
     SupabaseAuthGateway,
+)
+from trackmyprops_backend.cash_flow_models import (
+    CashFlowItem,
+    CashFlowItemCreate,
+    CashFlowItemList,
+    CashFlowItemType,
+    PropertyCashFlowSummary,
+    calculate_property_cash_flow_summary,
+)
+from trackmyprops_backend.cash_flow_store import (
+    CashFlowItemNotFoundError,
+    CashFlowStore,
+    CashFlowStoreUnavailableError,
+    CashFlowWriteRejectedError,
+    SupabaseCashFlowStore,
 )
 from trackmyprops_backend.config import Settings
 from trackmyprops_backend.property_models import (
@@ -113,18 +129,20 @@ def create_app(
     settings: Settings | None = None,
     auth_gateway: AuthGateway | None = None,
     property_store: PropertyStore | None = None,
+    cash_flow_store: CashFlowStore | None = None,
 ) -> FastAPI:
     """Create the API with explicit configuration and a testable Auth boundary."""
     runtime_settings = settings or Settings.from_environment()
     gateway = auth_gateway or SupabaseAuthGateway(runtime_settings)
     properties = property_store or SupabasePropertyStore(runtime_settings)
+    cash_flow_items = cash_flow_store or SupabaseCashFlowStore(runtime_settings)
     application = FastAPI(title="TrackMyProps Backend", version=__version__)
 
     application.add_middleware(
         CORSMiddleware,
         allow_origins=list(runtime_settings.frontend_origins),
         allow_credentials=False,
-        allow_methods=["GET", "OPTIONS", "PATCH", "POST", "PUT"],
+        allow_methods=["DELETE", "GET", "OPTIONS", "PATCH", "POST", "PUT"],
         allow_headers=["Authorization", "Content-Type", "X-Request-ID", "X-Trace-ID"],
     )
 
@@ -228,6 +246,138 @@ def create_app(
                 "The property could not be saved because the service is unavailable.",
             ) from error
 
+    async def read_property(
+        authenticated: AuthenticatedRequest,
+        property_id: UUID,
+    ) -> Property:
+        try:
+            return await properties.get(
+                authenticated.user.id,
+                property_id,
+                authenticated.access_token,
+            )
+        except PropertyNotFoundError as error:
+            raise ApiError(404, "PROPERTY_NOT_FOUND", "The property could not be found.") from error
+        except PropertyStoreUnavailableError as error:
+            raise ApiError(
+                503,
+                "PROPERTY_SERVICE_UNAVAILABLE",
+                "Properties are temporarily unavailable.",
+            ) from error
+
+    async def cash_flow_write(operation: Awaitable[CashFlowItem]) -> CashFlowItem:
+        try:
+            return await operation
+        except CashFlowItemNotFoundError as error:
+            raise ApiError(
+                404,
+                "CASH_FLOW_ITEM_NOT_FOUND",
+                "The property or cash flow item could not be found.",
+            ) from error
+        except CashFlowWriteRejectedError as error:
+            raise ApiError(
+                422,
+                "CASH_FLOW_ITEM_REJECTED",
+                "The cash flow item could not be saved with the supplied values.",
+            ) from error
+        except CashFlowStoreUnavailableError as error:
+            raise ApiError(
+                503,
+                "CASH_FLOW_SERVICE_UNAVAILABLE",
+                "Income and expenses are temporarily unavailable.",
+            ) from error
+
+    async def list_cash_flow_items(
+        authenticated: AuthenticatedRequest,
+        property_id: UUID,
+        item_type: CashFlowItemType,
+        page: int,
+        page_size: int,
+    ) -> CashFlowItemList:
+        try:
+            items, total = await cash_flow_items.list_for_property(
+                property_id,
+                item_type,
+                authenticated.access_token,
+                page,
+                page_size,
+            )
+        except CashFlowStoreUnavailableError as error:
+            raise ApiError(
+                503,
+                "CASH_FLOW_SERVICE_UNAVAILABLE",
+                "Income and expenses are temporarily unavailable.",
+            ) from error
+        total_pages = (total + page_size - 1) // page_size
+        return CashFlowItemList(
+            items=items,
+            pagination=PagePagination(
+                page=page,
+                page_size=page_size,
+                total=total,
+                total_pages=total_pages,
+                has_next=page < total_pages,
+                has_previous=page > 1,
+            ),
+        )
+
+    async def all_cash_flow_items(
+        authenticated: AuthenticatedRequest,
+        property_id: UUID,
+    ) -> list[CashFlowItem]:
+        items: list[CashFlowItem] = []
+        page_size = 100
+        try:
+            for item_type in CashFlowItemType:
+                page = 1
+                type_items: list[CashFlowItem] = []
+                while True:
+                    page_items, total = await cash_flow_items.list_for_property(
+                        property_id,
+                        item_type,
+                        authenticated.access_token,
+                        page,
+                        page_size,
+                    )
+                    type_items.extend(page_items)
+                    if len(type_items) >= total:
+                        break
+                    if not page_items:
+                        raise CashFlowStoreUnavailableError
+                    page += 1
+                items.extend(type_items)
+        except CashFlowStoreUnavailableError as error:
+            raise ApiError(
+                503,
+                "CASH_FLOW_SERVICE_UNAVAILABLE",
+                "Income and expenses are temporarily unavailable.",
+            ) from error
+        return items
+
+    async def delete_cash_flow_item(
+        authenticated: AuthenticatedRequest,
+        item_id: UUID,
+        item_type: CashFlowItemType,
+    ) -> None:
+        try:
+            await cash_flow_items.delete(
+                item_id,
+                item_type,
+                authenticated.access_token,
+            )
+        except CashFlowItemNotFoundError as error:
+            raise ApiError(
+                404,
+                "CASH_FLOW_ITEM_NOT_FOUND",
+                "The property or cash flow item could not be found.",
+            ) from error
+        except CashFlowStoreUnavailableError as error:
+            raise ApiError(
+                503,
+                "CASH_FLOW_SERVICE_UNAVAILABLE",
+                "Income and expenses are temporarily unavailable.",
+            ) from error
+
     @application.get("/health", response_model=HealthResponse)
     def health() -> HealthResponse:
         """Report process liveness without exposing configuration."""
@@ -300,6 +450,14 @@ def create_app(
             )
         )
 
+    @application.get("/api/v1/properties/{property_id}", response_model=Property)
+    async def get_property(
+        property_id: UUID,
+        authenticated: Annotated[AuthenticatedRequest, Depends(authenticated_request)],
+    ) -> Property:
+        """Return one non-deleted property visible to the authenticated owner."""
+        return await read_property(authenticated, property_id)
+
     @application.put("/api/v1/properties/{property_id}", response_model=Property)
     async def update_property(
         property_id: UUID,
@@ -330,6 +488,126 @@ def create_app(
                 authenticated.access_token,
                 status_update.status,
             )
+        )
+
+    @application.get(
+        "/api/v1/properties/{property_id}/income",
+        response_model=CashFlowItemList,
+    )
+    async def list_property_income(
+        property_id: UUID,
+        authenticated: Annotated[AuthenticatedRequest, Depends(authenticated_request)],
+        page: Annotated[int, Query(ge=1)] = 1,
+        page_size: Annotated[int, Query(ge=1, le=100)] = 25,
+    ) -> CashFlowItemList:
+        return await list_cash_flow_items(
+            authenticated,
+            property_id,
+            CashFlowItemType.INCOME,
+            page,
+            page_size,
+        )
+
+    @application.post(
+        "/api/v1/properties/{property_id}/income",
+        response_model=CashFlowItem,
+        status_code=201,
+    )
+    async def create_property_income(
+        property_id: UUID,
+        item_input: CashFlowItemCreate,
+        authenticated: Annotated[AuthenticatedRequest, Depends(authenticated_request)],
+    ) -> CashFlowItem:
+        return await cash_flow_write(
+            cash_flow_items.create(
+                property_id,
+                CashFlowItemType.INCOME,
+                authenticated.access_token,
+                item_input,
+            )
+        )
+
+    @application.delete(
+        "/api/v1/income/{item_id}",
+        status_code=204,
+    )
+    async def delete_property_income(
+        item_id: UUID,
+        authenticated: Annotated[AuthenticatedRequest, Depends(authenticated_request)],
+    ) -> None:
+        await delete_cash_flow_item(
+            authenticated,
+            item_id,
+            CashFlowItemType.INCOME,
+        )
+
+    @application.get(
+        "/api/v1/properties/{property_id}/expenses",
+        response_model=CashFlowItemList,
+    )
+    async def list_property_expenses(
+        property_id: UUID,
+        authenticated: Annotated[AuthenticatedRequest, Depends(authenticated_request)],
+        page: Annotated[int, Query(ge=1)] = 1,
+        page_size: Annotated[int, Query(ge=1, le=100)] = 25,
+    ) -> CashFlowItemList:
+        return await list_cash_flow_items(
+            authenticated,
+            property_id,
+            CashFlowItemType.EXPENSE,
+            page,
+            page_size,
+        )
+
+    @application.post(
+        "/api/v1/properties/{property_id}/expenses",
+        response_model=CashFlowItem,
+        status_code=201,
+    )
+    async def create_property_expense(
+        property_id: UUID,
+        item_input: CashFlowItemCreate,
+        authenticated: Annotated[AuthenticatedRequest, Depends(authenticated_request)],
+    ) -> CashFlowItem:
+        return await cash_flow_write(
+            cash_flow_items.create(
+                property_id,
+                CashFlowItemType.EXPENSE,
+                authenticated.access_token,
+                item_input,
+            )
+        )
+
+    @application.delete(
+        "/api/v1/expenses/{item_id}",
+        status_code=204,
+    )
+    async def delete_property_expense(
+        item_id: UUID,
+        authenticated: Annotated[AuthenticatedRequest, Depends(authenticated_request)],
+    ) -> None:
+        await delete_cash_flow_item(
+            authenticated,
+            item_id,
+            CashFlowItemType.EXPENSE,
+        )
+
+    @application.get(
+        "/api/v1/properties/{property_id}/cash-flow-summary",
+        response_model=PropertyCashFlowSummary,
+    )
+    async def get_property_cash_flow_summary(
+        property_id: UUID,
+        authenticated: Annotated[AuthenticatedRequest, Depends(authenticated_request)],
+        year: Annotated[int | None, Query(ge=2000, le=9999)] = None,
+    ) -> PropertyCashFlowSummary:
+        """Return annualised income and expense totals for one owner property."""
+        await read_property(authenticated, property_id)
+        items = await all_cash_flow_items(authenticated, property_id)
+        return calculate_property_cash_flow_summary(
+            property_id,
+            items,
+            year if year is not None else date.today().year,
         )
 
     @application.get("/api/v1/portfolio/summary", response_model=PortfolioSummary)

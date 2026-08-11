@@ -2,7 +2,9 @@
 
 This directory is the migration boundary for the TrackMyProps Supabase PostgreSQL schema.
 
-Active development uses the local Supabase API at `http://127.0.0.1:54321`. The frontend uses Supabase Auth directly; the backend verifies user bearer tokens through Supabase Auth. The property migration is the first product schema and RLS policy. The authenticated `address-lookup` Edge Function is a narrow PSMA/Geoscape address adapter; it stores validated normalized results in a server-only RLS table and returns a minimized suggestion contract. The repository contains no Storage configuration, Realtime configuration, project link, or credential.
+Active development uses the local Supabase API at `http://127.0.0.1:54321`. The frontend uses Supabase Auth directly; the backend verifies user bearer tokens through Supabase Auth. Migrations define owner-scoped properties and current property income/expense items. The authenticated `address-lookup` Edge Function is a narrow PSMA/Geoscape address adapter; it stores validated normalized results in a server-only RLS table and returns a minimized suggestion contract. The repository contains no Storage configuration, Realtime configuration, project link, or credential.
+
+`property_cash_flow_items` stores positive AUD line items with an `income` or `expense` type. Recurring items require a start date and one-off items require an occurrence date. Its RLS policies derive ownership through the parent property, deny cross-owner attachment and deletion, and grant no anonymous access.
 
 The local runtime is for development only. Its publishable key belongs in ignored frontend and backend `.env` files. Do not put the secret or service-role key in the frontend or commit it anywhere.
 
