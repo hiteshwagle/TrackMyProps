@@ -52,7 +52,12 @@ OPENAPI_PATHS = {
         "/internal/v1/health",
         "/internal/v1/ready",
     },
-    ROOT / "openapi" / "backend-v1.yaml": {"/health", "/ready", "/api/v1/me"},
+    ROOT / "openapi" / "backend-v1.yaml": {
+        "/health",
+        "/ready",
+        "/api/v1/me",
+        "/api/v1/properties",
+    },
 }
 
 

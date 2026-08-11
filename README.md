@@ -1,8 +1,8 @@
 # TrackMyProps
 
-TrackMyProps is an Australia-focused property-investment platform. This repository contains the Phase 0 scaffold and the first owner-only identity integration.
+TrackMyProps is an Australia-focused property-investment platform. This repository contains the Phase 0 scaffold, owner-only identity integration, and the first property create/list vertical slice.
 
-No property, loan, billing, provider, AI-agent, or other product business logic is implemented.
+Property editing, lifecycle management, income, expenses, analytics, billing, providers, and AI agents are not implemented yet.
 
 ## Repository structure
 
@@ -27,13 +27,13 @@ TrackMyProps is a monorepo. The four application projects are kept separate so t
 
 The user-facing Expo React Native application, written in strict TypeScript. It authenticates users through Supabase and will call the backend API for portfolio workflows. It must not contain authoritative financial calculations, permission decisions, database credentials, service-role keys, AI-provider secrets, or direct commercial-provider integrations.
 
-The current web-first slice contains email/password authentication against local Supabase, protected bottom navigation, Dashboard, Properties, Analytics, and Settings shells, linked Terms acceptance, a manual deletion-request email action, and an authenticated current-user call to the backend. Property persistence and calculations remain deferred until their contracts, owner-based RLS, migration, and backend endpoints exist.
+The current web-first slice contains email/password authentication against local Supabase, protected bottom navigation, linked Terms acceptance, a manual deletion-request email action, an authenticated current-user call, and a two-step property create/list experience. Financial totals and lifecycle actions remain deferred.
 
 ### `backend`
 
 The Python FastAPI service that will be the authoritative application and business layer. It will eventually own authentication validation, owner authorisation, property and financial records, deterministic calculations, audit events, exports, and deletion workflows. Household access and collaboration remain post-MVP.
 
-The backend exposes `GET /health`, dependency-aware `GET /ready`, and authenticated `GET /api/v1/me`. It validates bearer tokens through Supabase Auth using the frontend-safe publishable key. It has no service-role key, direct database access, property logic, financial calculations, or commercial provider integration.
+The backend exposes health/readiness, authenticated identity, and authenticated property create/list endpoints. It validates bearer tokens through Supabase Auth and uses the caller's JWT for RLS-protected property persistence. It has no service-role key, privileged database credential, analytics calculations, or commercial-provider integration.
 
 ### `ai-platform`
 
@@ -51,13 +51,13 @@ Phase 0 contains one deterministic example job and its tests. It has no source c
 
 The executable source of truth for versioned OpenAPI definitions, JSON Schemas, event contracts, and synthetic examples. Keeping contracts independent allows the four projects to agree on interfaces without importing another project's implementation.
 
-The shared foundation defines health, API-version metadata, errors, money, rates, pagination, idempotency, and the common event envelope. Domain contracts and generated clients remain deferred until an approved vertical slice needs them.
+The shared foundation defines health, API-version metadata, errors, money, rates, pagination, idempotency, and the common event envelope. Backend OpenAPI now also defines the first owner-property create/list contract.
 
 ### `supabase`
 
-The migration boundary for the future Supabase PostgreSQL schema and database security policies. Owner-scoped MVP tables will require row-level security and automated cross-account denial tests.
+The migration boundary for the Supabase PostgreSQL schema and database security policies. The first migration creates owner-scoped properties with RLS.
 
-Phase 0 contains no SQL migration, product table, Auth configuration, Storage policy, Realtime configuration, Edge Function, project link, or credential. Generated Supabase temporary state is ignored by Git.
+The property migration grants authenticated owners only the required select, insert, and update access to their own non-deleted rows. Storage, Realtime, Edge Functions, project links, and credentials remain absent. Generated Supabase temporary state is ignored by Git.
 
 ### `infrastructure`
 
@@ -147,4 +147,4 @@ The publishable key is suitable for frontend use; secret and service-role keys a
 
 ## Next phase
 
-The next separately approved task is owner identity and per-account data isolation. Simple owner-based RLS and cross-account denial tests must pass before property features. See `markdown files/mvp-owner-portfolio-scope.md`.
+The next small property slice should add retrieve/edit behaviour, followed separately by archive/sold/remove lifecycle actions. See `markdown files/mvp-owner-portfolio-scope.md`.

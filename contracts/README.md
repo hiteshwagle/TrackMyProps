@@ -1,12 +1,12 @@
 # TrackMyProps Shared Contracts
 
-This directory is the executable source of truth for versioned TrackMyProps wire contracts. It contains the shared foundation and the authenticated current-user identity contract; no property, household, loan, billing, provider, or AI-agent contract is defined yet.
+This directory is the executable source of truth for versioned TrackMyProps wire contracts. It contains the shared foundation, authenticated identity, and first owner-property API contract. Household, billing, provider, and AI-agent contracts remain deferred.
 
 ## Contract inventory
 
 | Contract             | Source                                                | Purpose                                             |
 | -------------------- | ----------------------------------------------------- | --------------------------------------------------- |
-| Backend API v1       | `openapi/backend-v1.yaml`                             | Operations and authenticated identity routes        |
+| Backend API v1       | `openapi/backend-v1.yaml`                             | Operations, identity, and owner property routes      |
 | AI-platform API v1   | `openapi/ai-platform-v1.yaml`                         | Current internal AI health and readiness routes     |
 | Health response      | `json-schema/common/health-response.schema.json`      | Direct operational status response                  |
 | API version metadata | `json-schema/common/api-version-metadata.schema.json` | API, contract, service, request, and trace metadata |

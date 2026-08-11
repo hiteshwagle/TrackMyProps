@@ -49,9 +49,13 @@ export function BodyText({ children }: PropsWithChildren) {
 type FieldProps = TextInputProps & {
   error?: string;
   label: string;
+  webInputType?: 'date';
 };
 
-export function Field({ error, label, ...inputProps }: FieldProps) {
+export function Field({ error, label, webInputType, ...inputProps }: FieldProps) {
+  const webInputProps =
+    Platform.OS === 'web' && webInputType ? ({ type: webInputType } as TextInputProps) : {};
+
   return (
     <View style={styles.field}>
       <Text style={styles.label}>{label}</Text>
@@ -59,6 +63,7 @@ export function Field({ error, label, ...inputProps }: FieldProps) {
         accessibilityLabel={label}
         placeholderTextColor={colours.muted}
         style={[styles.input, error ? styles.inputError : null]}
+        {...webInputProps}
         {...inputProps}
       />
       {error ? <Text style={styles.errorText}>{error}</Text> : null}
@@ -143,12 +148,9 @@ const styles = StyleSheet.create({
     borderColor: colours.border,
     borderRadius: 24,
     borderWidth: 1,
+    boxShadow: '0 12px 28px rgba(24, 53, 47, 0.08)',
     gap: 18,
     padding: 24,
-    shadowColor: '#18352F',
-    shadowOffset: { height: 12, width: 0 },
-    shadowOpacity: 0.08,
-    shadowRadius: 28,
   },
   errorMessage: {
     backgroundColor: '#FFF2F2',

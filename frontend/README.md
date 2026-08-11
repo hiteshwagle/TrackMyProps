@@ -9,12 +9,12 @@ The current slice contains:
 - a required linked Terms and Conditions checkbox;
 - protected Expo Router navigation;
 - bottom tabs for Dashboard, Properties, Analytics, and Settings;
-- empty portfolio and analytics states;
+- a two-step add-property form and active property list;
 - an authenticated current-user request to the local backend;
 - a manual account-deletion email action;
 - placeholder-only public configuration.
 
-It does not contain property persistence, financial calculations, property API calls, commercial integrations, or production credentials. The disabled property action is intentional until the property contracts, migration/RLS, and backend endpoint exist.
+Property creation calls the authenticated backend; the frontend never writes the property table directly. Editing, archive/sold/remove workflows, income, expenses, analytics calculations, commercial integrations, and production credentials remain deferred.
 
 ## Requirements
 
@@ -66,4 +66,4 @@ The development file points to the local Supabase API at `http://127.0.0.1:54321
 
 Name, optional phone, Terms URL, and acceptance time are currently passed as non-authoritative Supabase user metadata during signup. They are never used for authorisation. Before production, versioned legal acceptance and profile data require the approved database/backend contract and auditable storage.
 
-The current-user client validates the response described by `../contracts/openapi/backend-v1.yaml` and `../contracts/json-schema/identity/current-user.schema.json`. Property contracts remain deferred.
+The current-user and property clients validate responses described by `../contracts/openapi/backend-v1.yaml`. Money and rates remain decimal strings at the API boundary.

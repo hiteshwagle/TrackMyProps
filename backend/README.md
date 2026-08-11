@@ -8,11 +8,13 @@ The backend exposes:
 GET /health
 GET /ready
 GET /api/v1/me
+GET /api/v1/properties
+POST /api/v1/properties
 ```
 
-`GET /api/v1/me` requires a Supabase bearer token. The backend verifies the token through the local Supabase Auth `/auth/v1/user` endpoint using a publishable key, then returns only the user's ID, email, name, and optional phone. User metadata is display-only and is never used for authorisation.
+Authenticated endpoints require a Supabase bearer token. The backend verifies the token through the local Supabase Auth `/auth/v1/user` endpoint using a publishable key. User metadata is display-only and is never used for authorisation.
 
-The backend has no service-role key, direct database access, property domain, commercial provider, or financial business logic. Readiness returns `503` when Supabase Auth is missing or unreachable; liveness remains independent.
+Property endpoints derive `owner_user_id` from the verified identity and use the caller's JWT when accessing Supabase's Data API, preserving database RLS. The backend has no service-role key, direct privileged database credential, commercial provider, or analytics logic. Readiness returns `503` when Supabase Auth is missing or unreachable; liveness remains independent.
 
 ## Commands
 

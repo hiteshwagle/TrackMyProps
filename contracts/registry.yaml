@@ -3,7 +3,7 @@ contracts:
   - contract_id: api.backend
     contract_type: openapi
     major_version: 1
-    current_version: 1.1.0
+    current_version: 1.2.0
     status: active
     owner: trackmyprops-engineering
     consumers:

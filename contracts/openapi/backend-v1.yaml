@@ -1,8 +1,8 @@
 openapi: 3.1.0
 info:
   title: TrackMyProps Backend API
-  version: 1.1.0
-  description: Operational endpoints and the first authenticated identity endpoint.
+  version: 1.2.0
+  description: Operational, authenticated identity, and owner property endpoints.
 x-api-major-version: v1
 paths:
   /health:
@@ -83,7 +83,270 @@ paths:
             application/json:
               schema:
                 $ref: ../json-schema/errors/error-response.schema.json
+  /api/v1/properties:
+    get:
+      operationId: listProperties
+      summary: List the authenticated owner's active properties
+      tags:
+        - Properties
+      security:
+        - supabaseBearer: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: page_size
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 25
+      responses:
+        "200":
+          description: Active, non-deleted properties owned by the authenticated user.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PropertyList"
+        "401":
+          description: Authentication is missing or invalid.
+          content:
+            application/json:
+              schema:
+                $ref: ../json-schema/errors/error-response.schema.json
+        "503":
+          description: Property persistence is unavailable.
+          content:
+            application/json:
+              schema:
+                $ref: ../json-schema/errors/error-response.schema.json
+    post:
+      operationId: createProperty
+      summary: Create a currently owned property
+      tags:
+        - Properties
+      security:
+        - supabaseBearer: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PropertyCreate"
+      responses:
+        "201":
+          description: The property was created for the authenticated owner.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Property"
+        "401":
+          description: Authentication is missing or invalid.
+          content:
+            application/json:
+              schema:
+                $ref: ../json-schema/errors/error-response.schema.json
+        "422":
+          description: Property values failed validation or database constraints.
+          content:
+            application/json:
+              schema:
+                $ref: ../json-schema/errors/error-response.schema.json
+        "503":
+          description: Property persistence is unavailable.
+          content:
+            application/json:
+              schema:
+                $ref: ../json-schema/errors/error-response.schema.json
 components:
+  schemas:
+    Money:
+      type: object
+      additionalProperties: false
+      required:
+        - amount
+        - currency
+      properties:
+        amount:
+          type: string
+          pattern: "^-?(0|[1-9][0-9]*)(\\.[0-9]{1,2})?$"
+        currency:
+          type: string
+          const: AUD
+    Rate:
+      type: object
+      additionalProperties: false
+      required:
+        - value
+        - display_percent
+      properties:
+        value:
+          type: string
+          pattern: "^(0|0\\.[0-9]+|1(?:\\.0+)?)$"
+        display_percent:
+          type: string
+          pattern: "^(0|[1-9][0-9]?|100)(\\.[0-9]+)?$"
+    PropertyCreate:
+      type: object
+      additionalProperties: false
+      required:
+        - display_name
+        - address_line_1
+        - suburb
+        - state
+        - postcode
+        - country
+        - property_type
+        - bedrooms
+        - bathrooms
+        - car_spaces
+        - land_area_sqm
+        - building_area_sqm
+        - purchase_date
+        - purchase_price
+      properties:
+        display_name:
+          type: string
+          minLength: 1
+          maxLength: 120
+        address_line_1:
+          type: string
+          minLength: 1
+          maxLength: 200
+        address_line_2:
+          type:
+            - string
+            - "null"
+          maxLength: 200
+        suburb:
+          type: string
+          minLength: 1
+          maxLength: 100
+        state:
+          type: string
+          minLength: 1
+          maxLength: 50
+        postcode:
+          type: string
+          pattern: "^[0-9]{4}$"
+        country:
+          type: string
+          const: Australia
+        property_type:
+          type: string
+          enum: [house, apartment_unit, townhouse, villa, land, commercial, other]
+        bedrooms:
+          type: string
+          pattern: "^[0-9]+(?:\\.[05])?$"
+        bathrooms:
+          type: string
+          pattern: "^[0-9]+(?:\\.[05])?$"
+        car_spaces:
+          type: integer
+          minimum: 0
+        land_area_sqm:
+          type: string
+          pattern: "^(?:0\\.[0-9]*[1-9][0-9]*|[1-9][0-9]*(?:\\.[0-9]+)?)$"
+        building_area_sqm:
+          type: string
+          pattern: "^(?:0\\.[0-9]*[1-9][0-9]*|[1-9][0-9]*(?:\\.[0-9]+)?)$"
+        purchase_date:
+          type: string
+          format: date
+        purchase_price:
+          $ref: "#/components/schemas/Money"
+        current_value:
+          oneOf:
+            - $ref: "#/components/schemas/Money"
+            - type: "null"
+        current_value_as_of:
+          type:
+            - string
+            - "null"
+          format: date
+        has_loan:
+          type:
+            - boolean
+            - "null"
+        original_loan_amount:
+          oneOf:
+            - $ref: "#/components/schemas/Money"
+            - type: "null"
+        remaining_loan_balance:
+          oneOf:
+            - $ref: "#/components/schemas/Money"
+            - type: "null"
+        loan_balance_as_of:
+          type:
+            - string
+            - "null"
+          format: date
+        annual_interest_rate:
+          oneOf:
+            - $ref: "#/components/schemas/Rate"
+            - type: "null"
+        repayment_amount:
+          oneOf:
+            - $ref: "#/components/schemas/Money"
+            - type: "null"
+        repayment_frequency:
+          type:
+            - string
+            - "null"
+          enum: [weekly, fortnightly, monthly, quarterly, annually, null]
+        next_repayment_date:
+          type:
+            - string
+            - "null"
+          format: date
+        notes:
+          type:
+            - string
+            - "null"
+          maxLength: 2000
+    Property:
+      allOf:
+        - $ref: "#/components/schemas/PropertyCreate"
+        - type: object
+          required:
+            - property_id
+            - owner_user_id
+            - status
+            - created_at
+            - updated_at
+          properties:
+            property_id:
+              type: string
+              format: uuid
+            owner_user_id:
+              type: string
+              format: uuid
+            status:
+              type: string
+              enum: [active, sold, archived]
+            created_at:
+              type: string
+              format: date-time
+            updated_at:
+              type: string
+              format: date-time
+    PropertyList:
+      type: object
+      additionalProperties: false
+      required:
+        - items
+        - pagination
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/Property"
+        pagination:
+          $ref: ../json-schema/common/pagination.schema.json
   securitySchemes:
     supabaseBearer:
       type: http
@@ -94,3 +357,5 @@ tags:
     description: Non-sensitive service health and readiness checks.
   - name: Identity
     description: Identity derived from backend-verified Supabase access tokens.
+  - name: Properties
+    description: Owner-scoped property creation and retrieval.
