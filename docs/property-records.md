@@ -6,7 +6,7 @@ Implemented 29 October 2026 for the existing owner-only Sites web application. T
 
 Open a property from My properties or Overview. The property workspace contains Photos, Documents and Tenants tabs. Save a property before attaching files or tenant records.
 
-- Photos: JPG/JPEG, PNG and WebP; 5 MiB per file, 10 per property. Multiple selection uploads sequentially with status and partial-failure messages. The latest photo is shown on the property card. Photos can be opened or downloaded; confirmed removal deletes stored bytes and metadata.
+- Photos: JPG/JPEG, PNG and WebP; Originals up to 20 MiB, with a crop preview before upload. New photos are saved as JPEGs no larger than 800,000 bytes (800 KB), 10 per property. Multiple selection processes one crop at a time, with zoom/position controls, 4:3, 16:9, square and original proportions. Output has a maximum edge of 2048 pixels without upscaling. JPEG quality is selected to fit the limit, with additional downscaling when needed; small results are not padded to 700–800 KB. Uploads are sequential with status and partial-failure messages. Existing stored photos are not retroactively modified. The latest photo is shown on the property card. Photos can be opened or downloaded; confirmed removal deletes stored bytes and metadata.
 - Documents: PDF, DOCX, XLSX, TXT and CSV; 10 MiB per file, 20 per property. Metadata shows name, type, size and upload date. Documents are downloaded as attachments rather than executed or rendered inline. TXT/CSV must be UTF-8. Older DOC/XLS and HEIC photos are not supported.
 - Tenants: full name required; optional email, phone, lease start/end dates, rent amount/frequency, bond amount and notes. Status is active/upcoming/ended and is explicitly owner-selected, not automatically changed by date. Records can be edited and permanently removed after confirmation. Unsaved tenant changes prompt before changing tabs or closing the property workspace.
 - Tenant rent is informational. It does not create or alter income entries, preventing duplicate counting. No messages, invitations, screening decisions or tenant access are introduced.
@@ -36,6 +36,10 @@ The owner export includes tenant records and file metadata; binary attachments m
 No antivirus service, OCR, content extraction, document verification, tenant invitations, rent collection, tenancy compliance interpretation, date-driven reminders or automated screening is included. Office/PDF checks validate basic signatures, not document safety or semantic validity. Upload only trusted files. No identity documents, birthdays or government identifier fields are requested by the tenant form.
 
 A future verified account-deletion workflow must remove every owner's R2 object, file row and tenant record alongside existing portfolio records. Do not claim account deletion is complete before that end-to-end workflow is implemented.
+
+## Photo optimisation validation
+
+Browser test: a 14,575,447-byte synthetic PNG was cropped to square and compressed to a 793,896-byte JPEG before any upload. Geometry tests cover aspect ratio, edge positioning, zoom bounds and no upscaling. The private upload API now rejects 800,001-byte photos and accepts 800,000-byte photos. Source files and temporary visual QA routes are not published.
 
 ## Verification
 

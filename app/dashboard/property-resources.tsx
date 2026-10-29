@@ -19,6 +19,7 @@ import type {
   TenantInput,
 } from '../../lib/resources-domain';
 import { uploadLimits } from '../../lib/resources-domain';
+import PhotoCropper from './photo-cropper';
 type Section = 'photo' | 'document' | 'tenant';
 async function api<T = unknown>(path: string, method = 'GET', body?: unknown) {
   const response = await fetch(path, {
@@ -52,6 +53,7 @@ export default function PropertyResources({
   const [progress, setProgress] = useState('');
   const [editing, setEditing] = useState<Tenant | 'new' | null>(null);
   const [dirty, setDirty] = useState(false);
+  const [photoQueue, setPhotoQueue] = useState<File[]>([]);
   const input = useRef<HTMLInputElement>(null);
   const base = `/api/v1/properties/${propertyId}`;
   async function reload() {
@@ -67,17 +69,21 @@ export default function PropertyResources({
     void reload();
   }, [propertyId]);
   useEffect(() => {
-    onDirtyChange(dirty);
-    if (!dirty) return;
+    onDirtyChange(dirty || photoQueue.length > 0);
+    if (!dirty && !photoQueue.length) return;
     const listener = (e: BeforeUnloadEvent) => {
       e.preventDefault();
       e.returnValue = '';
     };
     window.addEventListener('beforeunload', listener);
     return () => window.removeEventListener('beforeunload', listener);
-  }, [dirty, onDirtyChange]);
+  }, [dirty, photoQueue.length, onDirtyChange]);
   function discard() {
-    if (!dirty || window.confirm('Discard your unsaved tenant details?')) {
+    if (
+      (!dirty && !photoQueue.length) ||
+      window.confirm('Discard your unsaved property changes?')
+    ) {
+      setPhotoQueue([]);
       setEditing(null);
       setDirty(false);
       return true;
@@ -90,7 +96,7 @@ export default function PropertyResources({
     setError('');
     setNotice('');
   }
-  async function upload(files: FileList | null) {
+  async function upload(files: FileList | File[] | null) {
     if (!files?.length || section === 'tenant') return;
     const kind = section;
     const chosen = Array.from(files);
@@ -106,7 +112,7 @@ export default function PropertyResources({
     const maxBytes = kind === 'photo' ? uploadLimits.photoBytes : uploadLimits.documentBytes;
     if (chosen.some((f) => !f.size || f.size > maxBytes)) {
       setError(
-        `Each ${kind} must be non-empty and no larger than ${kind === 'photo' ? 5 : 10} MB.`,
+        `Each ${kind} must be non-empty and no larger than ${kind === 'photo' ? '800 KB' : '10 MB'}.`,
       );
       if (input.current) input.current.value = '';
       return;
@@ -140,6 +146,32 @@ export default function PropertyResources({
       setProgress('');
       if (input.current) input.current.value = '';
     }
+    return uploaded === chosen.length;
+  }
+  function chooseFiles(files: FileList | null) {
+    if (section !== 'photo') {
+      void upload(files);
+      return;
+    }
+    if (!files?.length) return;
+    const chosen = Array.from(files);
+    const available =
+      uploadLimits.photos - (data?.files.filter((f) => f.kind === 'photo').length || 0);
+    if (chosen.length > available) {
+      setError(`Choose up to ${available} more photos.`);
+    } else if (
+      chosen.some(
+        (file) =>
+          !file.size || file.size > 20 * 1024 * 1024 || !/\.(jpe?g|png|webp)$/i.test(file.name),
+      )
+    ) {
+      setError('Choose non-empty JPG, PNG or WebP originals up to 20 MB each.');
+    } else {
+      setPhotoQueue(chosen);
+      setError('');
+      setNotice('');
+    }
+    if (input.current) input.current.value = '';
   }
   async function removeFile(id: string, name: string, kind: string) {
     if (!window.confirm(`Permanently remove “${name}” from this property?`)) return;
@@ -221,6 +253,23 @@ export default function PropertyResources({
         <div className="alert success" role="status">
           {notice}
         </div>
+      )}
+      {photoQueue.length > 0 && (
+        <PhotoCropper
+          files={photoQueue}
+          onUpload={async (file) => {
+            if (!(await upload([file])))
+              throw new Error('Photo was not saved. Check the message above and try again.');
+          }}
+          onFinish={(saved) => {
+            setPhotoQueue([]);
+            setNotice(
+              saved
+                ? `${saved} cropped and compressed photo(s) uploaded.`
+                : 'Photo upload cancelled.',
+            );
+          }}
+        />
       )}
       {loading ? (
         <div className="resources-loading">
@@ -355,12 +404,12 @@ export default function PropertyResources({
           <div className="resource-actions">
             <p>
               {section === 'photo'
-                ? 'JPG, PNG or WebP · up to 5 MB each · 10 photos per property'
+                ? 'JPG, PNG or WebP originals up to 20 MB · crop and compress to 800 KB maximum · 10 photos per property'
                 : 'PDF, Word (.docx), Excel (.xlsx), TXT or CSV · up to 10 MB each · 20 documents per property'}
             </p>
             <button
               className="button button-outline button-small"
-              disabled={busy}
+              disabled={busy || photoQueue.length > 0}
               onClick={() => input.current?.click()}
             >
               {busy ? <LoaderCircle className="spin" size={14} /> : <Upload size={14} />}{' '}
@@ -375,7 +424,7 @@ export default function PropertyResources({
                 section === 'photo' ? 'Choose property photos' : 'Choose property documents'
               }
               accept={section === 'photo' ? '.jpg,.jpeg,.png,.webp' : '.pdf,.docx,.xlsx,.txt,.csv'}
-              onChange={(event) => void upload(event.target.files)}
+              onChange={(event) => chooseFiles(event.target.files)}
               disabled={busy}
             />
           </div>

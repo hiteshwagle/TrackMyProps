@@ -678,7 +678,7 @@ export default function Dashboard({
           title={property.display_name}
           subtitle={`${property.address_line_1}, ${property.suburb} ${property.state} ${property.postcode}`}
           onClose={() => {
-            if (!resourcesDirty || window.confirm('Discard your unsaved tenant details?'))
+            if (!resourcesDirty || window.confirm('Discard your unsaved property changes?'))
               setSelected(null);
           }}
         >
@@ -688,7 +688,7 @@ export default function Dashboard({
               <button
                 className="button button-outline button-small"
                 onClick={() => {
-                  if (!resourcesDirty || window.confirm('Discard your unsaved tenant details?')) {
+                  if (!resourcesDirty || window.confirm('Discard your unsaved property changes?')) {
                     setResourcesDirty(false);
                     setEdit(property);
                   }

@@ -53,7 +53,7 @@ export type PropertyFile = {
 };
 export type PropertyResources = { files: PropertyFile[]; tenants: Tenant[] };
 export const uploadLimits = {
-  photoBytes: 5 * 1024 * 1024,
+  photoBytes: 800000,
   documentBytes: 10 * 1024 * 1024,
   photos: 10,
   documents: 20,

@@ -338,10 +338,16 @@ try {
     'active SVG upload denied',
   );
   check((await upload('empty.png', new Uint8Array())).status, 400, 'empty upload denied');
+  check((await upload('huge.png', new Uint8Array(800001))).status, 413, 'oversized photo denied');
+  const boundaryPhoto = new Uint8Array(800000);
+  boundaryPhoto.set(photo);
+  const boundaryUpload = await upload('boundary.png', boundaryPhoto);
+  check(boundaryUpload.status, 201, 'photo at the 800 KB boundary accepted');
+  const boundaryId = (await boundaryUpload.json()).id;
   check(
-    (await upload('huge.png', new Uint8Array(5 * 1024 * 1024 + 1))).status,
-    413,
-    'oversized photo denied',
+    (await call('/api/v1/files/' + boundaryId, { method: 'DELETE' })).status,
+    200,
+    'boundary fixture removed',
   );
   const uploadedPhoto = await upload('test.png', photo);
   check(uploadedPhoto.status, 201, 'owner uploads photo to private storage');
