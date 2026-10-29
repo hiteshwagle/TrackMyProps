@@ -8,6 +8,13 @@
       "when": 1793254401994,
       "tag": "0000_wealthy_darkstar",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1793267174597,
+      "tag": "0001_brief_joshua_kane",
+      "breakpoints": true
     }
   ]
 }

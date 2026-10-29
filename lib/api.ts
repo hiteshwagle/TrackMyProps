@@ -7,15 +7,15 @@ export class ApiError extends Error {
     super(message);
   }
 }
-export async function apiUser(request: Request, write = false) {
+export async function apiUser(request: Request, write = false, contentType = 'application/json') {
   const user = await getChatGPTUser();
   if (!user) throw new ApiError(401, 'Sign in to access your portfolio.');
   if (write) {
     const origin = request.headers.get('origin');
     if (!origin || origin !== new URL(request.url).origin)
       throw new ApiError(403, 'Request origin is not allowed.');
-    if (!request.headers.get('content-type')?.includes('application/json'))
-      throw new ApiError(415, 'Send JSON data.');
+    if (!request.headers.get('content-type')?.includes(contentType))
+      throw new ApiError(415, `Send ${contentType} data.`);
   }
   return user;
 }

@@ -16,6 +16,10 @@ The earlier Expo frontend, Python services, Firebase/Supabase integrations and t
 - Named recurring and one-off income/expense entries and confirmed removal.
 - Annualised property/portfolio totals, monthly-average net, completeness indicators, and owner-scoped JSON export.
 - Exact fixed-point financial arithmetic on the server. Dates use calendar years, not Australian financial years.
+- Private property photo galleries (up to 10 JPG/PNG/WebP photos, 5 MB each) and document storage (up to 20 PDF/DOCX/XLSX/TXT/CSV files, 10 MB each). The latest photo is shown on its property card.
+- Tenant create/edit/remove with contact details, tenancy status, lease dates, rent, bond and notes. Tenant rent is a reference and does not automatically create income.
+
+See `docs/property-records.md` for the file and tenant feature contracts and boundaries.
 
 ## Run and validate
 
@@ -41,4 +45,4 @@ Money is stored as validated AUD decimal strings and calculated as integer cents
 
 ## Boundaries
 
-Historical Firebase/Supabase accounts and records are not imported, matched by email or deleted. Existing cloud resources are not changed. Address providers, photographs, documents, leases, AI agents, bank feeds, billing, sale/removal workflows and full account deletion are not part of this slice. Export is available; account deletion needs a separately verified operational workflow before a broader commercial release. No financial, tax or automatic valuation advice is provided.
+Historical Firebase/Supabase accounts and records are not imported, matched by email or deleted. Existing cloud resources are not changed. Address providers, automated lease/rent workflows, AI agents, bank feeds, billing, sale/removal workflows and full account deletion are not part of this slice. Private file and tenant storage are implemented; uploads are not virus-scanned or parsed for document contents. Export is available; account deletion needs a separately verified operational workflow before a broader commercial release. No financial, tax or automatic valuation advice is provided.

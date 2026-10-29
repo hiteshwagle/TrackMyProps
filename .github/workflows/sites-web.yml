@@ -1,9 +1,35 @@
 name: Sites web application
 on:
   push:
-    paths: ['app/**', 'lib/**', 'db/**', 'drizzle/**', 'tests/domain.test.ts', 'tests/api.mjs', 'package.json', 'pnpm-lock.yaml', 'vite.config.ts', 'tsconfig.json', '.openai/**', '.github/workflows/sites-web.yml']
+    paths:
+      [
+        'app/**',
+        'lib/**',
+        'db/**',
+        'drizzle/**',
+        'tests/**',
+        'package.json',
+        'pnpm-lock.yaml',
+        'vite.config.ts',
+        'tsconfig.json',
+        '.openai/**',
+        '.github/workflows/sites-web.yml',
+      ]
   pull_request:
-    paths: ['app/**', 'lib/**', 'db/**', 'drizzle/**', 'tests/domain.test.ts', 'tests/api.mjs', 'package.json', 'pnpm-lock.yaml', 'vite.config.ts', 'tsconfig.json', '.openai/**', '.github/workflows/sites-web.yml']
+    paths:
+      [
+        'app/**',
+        'lib/**',
+        'db/**',
+        'drizzle/**',
+        'tests/**',
+        'package.json',
+        'pnpm-lock.yaml',
+        'vite.config.ts',
+        'tsconfig.json',
+        '.openai/**',
+        '.github/workflows/sites-web.yml',
+      ]
 permissions:
   contents: read
 jobs:

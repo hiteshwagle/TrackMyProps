@@ -35,6 +35,10 @@ The requested MotionSites integration was searched for and was not available. An
 
 No existing account or financial record is migrated automatically. Sites IDs are Site-specific and must not be linked to old accounts by email alone. A later migration requires authenticated ownership proof, explicit mapping, test import, reconciliation and an approved cutover. Old cloud resources remain untouched.
 
+## Property records extension
+
+On 29 October 2026, private photo/document storage and tenant records were added under `docs/property-records.md`. These capabilities supersede earlier deferrals for files and basic tenant/lease details. The managed R2 binding is `BUCKET`.
+
 ## Current limitations
 
 Manual addresses, one simple loan summary, annualised entries rather than dated ledger transactions, no partial-year proration, no automatic deduction of informational loan repayments, no automated valuations, no sold or removal workflow, no full account deletion, and no native application build. The homepage uses explicitly illustrative data only. The actual dashboard is empty until its owner creates records.

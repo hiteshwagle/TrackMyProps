@@ -123,6 +123,7 @@ export type Property = PropertyInput & {
   status: 'active' | 'archived';
   created_at: string;
   updated_at: string;
+  photo_id?: string | null;
 };
 export type CashFlowItem = z.infer<typeof itemSchema> & { id: string };
 export function cents(v: string): bigint {

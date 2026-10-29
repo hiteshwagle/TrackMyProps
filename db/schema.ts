@@ -1,4 +1,11 @@
-import { sqliteTable, text, index, uniqueIndex, foreignKey } from 'drizzle-orm/sqlite-core';
+import {
+  sqliteTable,
+  text,
+  index,
+  uniqueIndex,
+  foreignKey,
+  integer,
+} from 'drizzle-orm/sqlite-core';
 export const properties = sqliteTable(
   'properties',
   {
@@ -27,6 +34,45 @@ export const cashFlowItems = sqliteTable(
   },
   (t) => [
     index('cash_flow_owner_property').on(t.ownerId, t.propertyId),
+    foreignKey({
+      columns: [t.propertyId, t.ownerId],
+      foreignColumns: [properties.id, properties.ownerId],
+    }).onDelete('cascade'),
+  ],
+);
+export const propertyFiles = sqliteTable(
+  'property_files',
+  {
+    id: text('id').primaryKey(),
+    ownerId: text('owner_id').notNull(),
+    propertyId: text('property_id').notNull(),
+    kind: text('kind', { enum: ['photo', 'document'] }).notNull(),
+    objectKey: text('object_key').notNull(),
+    name: text('name').notNull(),
+    mime: text('mime').notNull(),
+    size: integer('size').notNull(),
+    createdAt: text('created_at').notNull(),
+  },
+  (t) => [
+    index('files_owner_property').on(t.ownerId, t.propertyId),
+    foreignKey({
+      columns: [t.propertyId, t.ownerId],
+      foreignColumns: [properties.id, properties.ownerId],
+    }).onDelete('cascade'),
+  ],
+);
+export const tenants = sqliteTable(
+  'tenants',
+  {
+    id: text('id').primaryKey(),
+    ownerId: text('owner_id').notNull(),
+    propertyId: text('property_id').notNull(),
+    data: text('data').notNull(),
+    createdAt: text('created_at').notNull(),
+    updatedAt: text('updated_at').notNull(),
+  },
+  (t) => [
+    index('tenants_owner_property').on(t.ownerId, t.propertyId),
     foreignKey({
       columns: [t.propertyId, t.ownerId],
       foreignColumns: [properties.id, properties.ownerId],

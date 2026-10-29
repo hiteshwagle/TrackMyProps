@@ -1,6 +1,6 @@
 import { and, eq, desc } from 'drizzle-orm';
 import { getDb } from '../db';
-import { properties, cashFlowItems } from '../db/schema';
+import { properties, cashFlowItems, propertyFiles } from '../db/schema';
 import type { Property, PropertyInput, CashFlowItem } from './domain';
 export function ownerFilter(ownerId: string, id: string) {
   return and(eq(properties.ownerId, ownerId), eq(properties.id, id));
@@ -13,10 +13,19 @@ export async function listPortfolio(ownerId: string) {
     .where(eq(properties.ownerId, ownerId))
     .orderBy(desc(properties.createdAt));
   const items = await db.select().from(cashFlowItems).where(eq(cashFlowItems.ownerId, ownerId));
+  const photos = await db
+    .select({ id: propertyFiles.id, propertyId: propertyFiles.propertyId })
+    .from(propertyFiles)
+    .where(and(eq(propertyFiles.ownerId, ownerId), eq(propertyFiles.kind, 'photo')))
+    .orderBy(desc(propertyFiles.createdAt), desc(propertyFiles.id));
+  const coverIds = new Map<string, string>();
+  for (const photo of photos)
+    if (!coverIds.has(photo.propertyId)) coverIds.set(photo.propertyId, photo.id);
   return {
     properties: rows.map((r) => ({
       ...JSON.parse(r.data),
       id: r.id,
+      photo_id: coverIds.get(r.id) ?? null,
       status: r.status,
       created_at: r.createdAt,
       updated_at: r.updatedAt,

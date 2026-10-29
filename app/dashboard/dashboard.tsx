@@ -27,6 +27,7 @@ import {
   CalendarDays,
 } from 'lucide-react';
 import { Brand, HouseArt } from '../visuals';
+import PropertyResources from './property-resources';
 import type { Property, PropertyInput, CashFlowItem, Summary } from '../../lib/domain';
 type Portfolio = { properties: Property[]; items: CashFlowItem[]; summary: Summary };
 type View = 'dashboard' | 'properties' | 'analytics' | 'settings';
@@ -83,6 +84,8 @@ export default function Dashboard({
   const [monthly, setMonthly] = useState(false);
   const [edit, setEdit] = useState<Property | 'new' | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
+  const [resourcesDirty, setResourcesDirty] = useState(false);
+  useEffect(() => setResourcesDirty(false), [selected]);
   const [itemType, setItemType] = useState<'income' | 'expense' | null>(null);
   const [busy, setBusy] = useState(false);
   async function refresh() {
@@ -662,10 +665,11 @@ export default function Dashboard({
         <PropertyForm
           property={edit === 'new' ? null : edit}
           onClose={() => setEdit(null)}
-          onSaved={async () => {
+          onSaved={async (propertyId) => {
             setEdit(null);
             await refresh();
-            setNotice('Property saved.');
+            setSelected(propertyId);
+            setNotice('Property saved. Add photos, documents or tenant details in its workspace.');
           }}
         />
       )}
@@ -673,14 +677,22 @@ export default function Dashboard({
         <Modal
           title={property.display_name}
           subtitle={`${property.address_line_1}, ${property.suburb} ${property.state} ${property.postcode}`}
-          onClose={() => setSelected(null)}
+          onClose={() => {
+            if (!resourcesDirty || window.confirm('Discard your unsaved tenant details?'))
+              setSelected(null);
+          }}
         >
           <div className="property-workspace">
             <div className="workspace-property-header">
               <span className={`status-chip ${property.status}`}>{property.status}</span>
               <button
                 className="button button-outline button-small"
-                onClick={() => setEdit(property)}
+                onClick={() => {
+                  if (!resourcesDirty || window.confirm('Discard your unsaved tenant details?')) {
+                    setResourcesDirty(false);
+                    setEdit(property);
+                  }
+                }}
               >
                 <Pencil size={14} /> Edit property
               </button>
@@ -722,6 +734,11 @@ export default function Dashboard({
               <span>{property.building_area_sqm} m² building</span>
             </div>
             {property.notes && <p className="property-notes">{property.notes}</p>}
+            <PropertyResources
+              propertyId={property.id}
+              onPhotosChanged={refresh}
+              onDirtyChange={setResourcesDirty}
+            />
             {(['income', 'expense'] as const).map((type) => (
               <section className="item-section" key={type}>
                 <div className="list-section-heading">
@@ -847,7 +864,11 @@ function PropertyCard({
   return (
     <button className="property-card" onClick={onOpen}>
       <div className="property-art">
-        <HouseArt variant={index % 3} />
+        {p.photo_id ? (
+          <img src={'/api/v1/files/' + p.photo_id} alt={p.display_name} loading="lazy" />
+        ) : (
+          <HouseArt variant={index % 3} />
+        )}
         <span className="status-chip">
           {p.status === 'active' ? 'In your portfolio' : 'Archived'}
         </span>
@@ -973,7 +994,7 @@ function PropertyForm({
 }: {
   property: Property | null;
   onClose: () => void;
-  onSaved: () => Promise<void>;
+  onSaved: (propertyId: string) => Promise<void>;
 }) {
   const [step, setStep] = useState(1);
   const [hasLoan, setHasLoan] = useState(
@@ -1054,12 +1075,12 @@ function PropertyForm({
       notes: str('notes'),
     };
     try {
-      await request(
+      const saved = await request<{ result: { id: string }[] }>(
         p ? `/api/v1/properties/${p.id}` : '/api/v1/properties',
         p ? 'PUT' : 'POST',
         input,
       );
-      await onSaved();
+      await onSaved(saved.result[0].id);
     } catch (e) {
       setError((e as Error).message);
     } finally {

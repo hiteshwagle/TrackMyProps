@@ -1,5 +1,6 @@
 import { apiUser, failure } from '../../../../lib/api';
 import { listPortfolio } from '../../../../lib/store';
+import { listResources } from '../../../../lib/resources-store';
 export async function GET(request: Request) {
   try {
     const user = await apiUser(request);
@@ -9,6 +10,7 @@ export async function GET(request: Request) {
           exported_at: new Date().toISOString(),
           currency: 'AUD',
           ...(await listPortfolio(user.userId)),
+          ...(await listResources(user.userId)),
         },
         null,
         2,
