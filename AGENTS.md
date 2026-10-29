@@ -1,3 +1,9 @@
+# Active Sites web app override — 29 October 2026
+
+The user explicitly authorised replacing Firebase/GCP/Supabase dependencies for the active web app with ChatGPT Sites services. Read `docs/sites-migration.md` and the root README first. Root `app/`, `lib/`, `db/`, and `drizzle/` form the active React/TypeScript web app. Use native Sites identity, Worker APIs, private D1 and exact integer-cent arithmetic. D1 has no PostgreSQL RLS: enforce authenticated owner predicates on every query and composite owner foreign keys; preserve cross-account denial tests. Never trust client owner IDs. Preserve `.openai/hosting.json` project_id and use the Sites workflow for publication. Root `pnpm typecheck`, `pnpm test`, `pnpm build`, and `pnpm test:integration` validate this slice. Native Expo and cloud services in older folders are reference implementations and are not deployed. No historical data is migrated without a separate verified mapping. Older runtime-specific instructions below are superseded for this root web app; their simplicity, privacy, exact financial arithmetic and owner-isolation principles remain applicable.
+
+---
+
 # TrackMyProps Codex Agent Instructions
 
 ## 1. Mission
@@ -28,13 +34,13 @@ Treat “single end-user” as one private portfolio per authenticated account, 
 
 For the MVP:
 
-* the only application role is owner;
-* do not implement households, memberships, invitations, role management, or shared portfolios;
-* every owner-scoped row requires backend ownership checks, simple RLS, and cross-account denial tests;
-* property income and expenses are named child line items, not dynamic columns or executable expressions;
-* use the approved remote Supabase development environment; do not require a local Supabase runtime;
-* keep all development credentials and generated project-link state outside source control;
-* do not start frontend feature coding until the relevant contracts, migration, RLS policies, and backend boundaries are approved.
+- the only application role is owner;
+- do not implement households, memberships, invitations, role management, or shared portfolios;
+- every owner-scoped row requires backend ownership checks, simple RLS, and cross-account denial tests;
+- property income and expenses are named child line items, not dynamic columns or executable expressions;
+- use the approved remote Supabase development environment; do not require a local Supabase runtime;
+- keep all development credentials and generated project-link state outside source control;
+- do not start frontend feature coding until the relevant contracts, migration, RLS policies, and backend boundaries are approved.
 
 The detailed source of truth is:
 
@@ -50,15 +56,15 @@ Broader household and collaboration requirements are deferred post-MVP.
 
 The project must remain:
 
-* simple;
-* readable;
-* auditable;
-* minimal;
-* robust;
-* secure;
-* easy to test;
-* easy to operate;
-* easy for another developer to understand.
+- simple;
+- readable;
+- auditable;
+- minimal;
+- robust;
+- secure;
+- easy to test;
+- easy to operate;
+- easy for another developer to understand.
 
 Prefer the smallest correct solution.
 
@@ -283,21 +289,21 @@ These boundaries are mandatory.
 
 The frontend may:
 
-* authenticate through approved Supabase client functionality;
-* call the public backend API;
-* upload using backend-approved signed URLs;
-* subscribe to approved realtime updates.
+- authenticate through approved Supabase client functionality;
+- call the public backend API;
+- upload using backend-approved signed URLs;
+- subscribe to approved realtime updates.
 
 The frontend must not:
 
-* call the AI platform directly;
-* contain service-role keys;
-* contain database credentials;
-* contain AI-provider secrets;
-* implement authoritative financial calculations;
-* decide permissions;
-* send EOI or external communication directly;
-* call commercial property providers directly.
+- call the AI platform directly;
+- contain service-role keys;
+- contain database credentials;
+- contain AI-provider secrets;
+- implement authoritative financial calculations;
+- decide permissions;
+- send EOI or external communication directly;
+- call commercial property providers directly.
 
 ## Backend
 
@@ -305,50 +311,50 @@ The backend is the authoritative business layer.
 
 It owns:
 
-* authentication validation;
-* authorisation;
-* household access;
-* property records;
-* loans;
-* income;
-* expenses;
-* leases;
-* valuations;
-* deterministic calculations;
-* scenarios;
-* approvals;
-* notifications;
-* billing entitlements;
-* communication sending;
-* audit events;
-* data export;
-* account deletion.
+- authentication validation;
+- authorisation;
+- household access;
+- property records;
+- loans;
+- income;
+- expenses;
+- leases;
+- valuations;
+- deterministic calculations;
+- scenarios;
+- approvals;
+- notifications;
+- billing entitlements;
+- communication sending;
+- audit events;
+- data export;
+- account deletion.
 
 ## AI platform
 
 The AI platform owns:
 
-* AI execution;
-* LangGraph orchestration;
-* agents;
-* prompts;
-* model-provider abstraction;
-* structured output validation;
-* checkpoints;
-* AI caching;
-* evaluations;
-* AI cost tracking.
+- AI execution;
+- LangGraph orchestration;
+- agents;
+- prompts;
+- model-provider abstraction;
+- structured output validation;
+- checkpoints;
+- AI caching;
+- evaluations;
+- AI cost tracking.
 
 It must not directly:
 
-* modify core property records;
-* modify loans;
-* send email;
-* charge users;
-* change permissions;
-* delete user data;
-* run arbitrary SQL;
-* call arbitrary URLs.
+- modify core property records;
+- modify loans;
+- send email;
+- charge users;
+- change permissions;
+- delete user data;
+- run arbitrary SQL;
+- call arbitrary URLs.
 
 It must use narrowly scoped backend tools.
 
@@ -356,15 +362,15 @@ It must use narrowly scoped backend tools.
 
 The data platform owns:
 
-* ingestion;
-* raw artefacts;
-* staging;
-* canonical models;
-* curated datasets;
-* quality checks;
-* lineage;
-* publication;
-* source and licence metadata.
+- ingestion;
+- raw artefacts;
+- staging;
+- canonical models;
+- curated datasets;
+- quality checks;
+- lineage;
+- publication;
+- source and licence metadata.
 
 The backend and AI platform should consume approved curated data, not uncontrolled raw provider payloads.
 
@@ -376,10 +382,10 @@ Do not introduce Supabase Edge Functions by default.
 
 Use them only for a concrete, small, Supabase-specific requirement such as:
 
-* Auth hook;
-* lightweight Storage event;
-* simple webhook adapter;
-* small Supabase-specific bridge.
+- Auth hook;
+- lightweight Storage event;
+- simple webhook adapter;
+- small Supabase-specific bridge.
 
 Core business logic remains in the Python FastAPI backend on Cloud Run.
 
@@ -406,58 +412,58 @@ If these cannot be explained clearly, do not create the Edge Function.
 
 ## General
 
-* Keep modules focused.
-* Keep public interfaces small.
-* Use explicit types.
-* Use clear domain names.
-* Use dependency injection only where it improves testability or separation.
-* Avoid a dependency-injection framework unless required.
-* Use comments only when the reason is not clear from the code.
-* Do not comment obvious code.
-* Remove dead code.
-* Do not leave commented-out code.
-* Do not leave unfinished TODOs without an issue or documented reason.
+- Keep modules focused.
+- Keep public interfaces small.
+- Use explicit types.
+- Use clear domain names.
+- Use dependency injection only where it improves testability or separation.
+- Avoid a dependency-injection framework unless required.
+- Use comments only when the reason is not clear from the code.
+- Do not comment obvious code.
+- Remove dead code.
+- Do not leave commented-out code.
+- Do not leave unfinished TODOs without an issue or documented reason.
 
 ## Python
 
-* Use current supported Python version approved by the repository.
-* Use type hints.
-* Use Pydantic at API boundaries.
-* Use SQLAlchemy for persistence.
-* Use `Decimal` for financial values.
-* Never use binary floating-point values for money.
-* Keep FastAPI route handlers thin.
-* Put business logic in small domain or service functions.
-* Keep transactions explicit.
-* Avoid generic CRUD frameworks.
-* Avoid a repository class for every table unless it adds real value.
-* Prefer clear SQLAlchemy queries over complex ORM magic.
-* Validate all external provider responses.
+- Use current supported Python version approved by the repository.
+- Use type hints.
+- Use Pydantic at API boundaries.
+- Use SQLAlchemy for persistence.
+- Use `Decimal` for financial values.
+- Never use binary floating-point values for money.
+- Keep FastAPI route handlers thin.
+- Put business logic in small domain or service functions.
+- Keep transactions explicit.
+- Avoid generic CRUD frameworks.
+- Avoid a repository class for every table unless it adds real value.
+- Prefer clear SQLAlchemy queries over complex ORM magic.
+- Validate all external provider responses.
 
 ## TypeScript
 
-* Enable strict TypeScript settings.
-* Avoid `any`.
-* Use generated or shared API types where practical.
-* Keep business logic out of presentation components.
-* Use TanStack Query for server state.
-* Use Zustand only for genuine local or cross-screen client state.
-* Do not mirror all server data into Zustand.
-* Keep components small and accessible.
-* Avoid one giant global store.
-* Avoid unnecessary custom hooks.
+- Enable strict TypeScript settings.
+- Avoid `any`.
+- Use generated or shared API types where practical.
+- Keep business logic out of presentation components.
+- Use TanStack Query for server state.
+- Use Zustand only for genuine local or cross-screen client state.
+- Do not mirror all server data into Zustand.
+- Keep components small and accessible.
+- Avoid one giant global store.
+- Avoid unnecessary custom hooks.
 
 ## SQL
 
-* Use migrations for every database change.
-* Use constraints.
-* Use foreign keys.
-* Use indexes based on actual query patterns.
-* Use row-level security.
-* Add cross-account denial tests for the owner-only MVP and cross-household denial tests if collaboration is later approved.
-* Keep database functions small.
-* Avoid business logic duplication between SQL and Python.
-* Never disable RLS as a shortcut.
+- Use migrations for every database change.
+- Use constraints.
+- Use foreign keys.
+- Use indexes based on actual query patterns.
+- Use row-level security.
+- Add cross-account denial tests for the owner-only MVP and cross-household denial tests if collaboration is later approved.
+- Keep database functions small.
+- Avoid business logic duplication between SQL and Python.
+- Never disable RLS as a shortcut.
 
 ---
 
@@ -465,13 +471,13 @@ If these cannot be explained clearly, do not create the Edge Function.
 
 Financial calculations must be:
 
-* deterministic;
-* versioned;
-* testable;
-* reproducible;
-* performed by backend code;
-* based on explicit inputs;
-* clear about missing information.
+- deterministic;
+- versioned;
+- testable;
+- reproducible;
+- performed by backend code;
+- based on explicit inputs;
+- clear about missing information.
 
 Use:
 
@@ -504,12 +510,12 @@ into:
 
 Calculations must identify:
 
-* formula version;
-* inputs;
-* assumptions;
-* result;
-* excluded costs;
-* missing inputs.
+- formula version;
+- inputs;
+- assumptions;
+- result;
+- excluded costs;
+- missing inputs.
 
 AI agents may explain calculation results, but they must not independently calculate authoritative values.
 
@@ -519,9 +525,9 @@ AI agents may explain calculation results, but they must not independently calcu
 
 Every owner-scoped MVP resource and every future household-scoped resource must be protected by:
 
-* backend authorisation;
-* database row-level security;
-* automated negative tests.
+- backend authorisation;
+- database row-level security;
+- automated negative tests.
 
 For every owner-scoped MVP resource, test at least:
 
@@ -536,20 +542,20 @@ Post-MVP household resources additionally require member, viewer, inactive-membe
 
 Do not trust:
 
-* frontend-supplied roles;
-* frontend feature flags;
-* user-supplied household IDs;
-* client-calculated entitlements.
+- frontend-supplied roles;
+- frontend feature flags;
+- user-supplied household IDs;
+- client-calculated entitlements.
 
 Do not log:
 
-* access tokens;
-* service keys;
-* complete documents;
-* full EOI bodies;
-* passwords;
-* raw secrets;
-* unnecessary personal information.
+- access tokens;
+- service keys;
+- complete documents;
+- full EOI bodies;
+- passwords;
+- raw secrets;
+- unnecessary personal information.
 
 All internal service calls must be authenticated.
 
@@ -559,25 +565,25 @@ All internal service calls must be authenticated.
 
 Apply:
 
-* data minimisation;
-* purpose limitation;
-* retention rules;
-* deletion support;
-* export support;
-* user correction;
-* consent versioning where needed;
-* auditability.
+- data minimisation;
+- purpose limitation;
+- retention rules;
+- deletion support;
+- export support;
+- user correction;
+- consent versioning where needed;
+- auditability.
 
 Production user data must not be used for general model training by default.
 
 Derived data must be included in deletion design:
 
-* AI cache;
-* embeddings;
-* AI memory;
-* exports;
-* generated documents;
-* provider copies where applicable.
+- AI cache;
+- embeddings;
+- AI memory;
+- exports;
+- generated documents;
+- provider copies where applicable.
 
 ---
 
@@ -641,10 +647,10 @@ Editing the draft must invalidate prior approval.
 
 Use only:
 
-* official public sources;
-* explicitly approved APIs;
-* contractually licensed feeds;
-* approved test fixtures.
+- official public sources;
+- explicitly approved APIs;
+- contractually licensed feeds;
+- approved test fixtures.
 
 Do not implement unauthorised scraping.
 
@@ -684,14 +690,14 @@ Internal API prefix:
 
 Use:
 
-* stable error codes;
-* explicit schemas;
-* pagination;
-* idempotency for consequential writes;
-* request IDs;
-* trace IDs;
-* timeouts;
-* bounded retries.
+- stable error codes;
+- explicit schemas;
+- pagination;
+- idempotency for consequential writes;
+- request IDs;
+- trace IDs;
+- timeouts;
+- bounded retries.
 
 Long-running work must return an operation or execution ID rather than keeping one request open indefinitely.
 
@@ -705,19 +711,19 @@ No feature is complete without tests.
 
 Use the appropriate combination of:
 
-* unit tests;
-* integration tests;
-* API contract tests;
-* database tests;
-* RLS tests;
-* migration tests;
-* event tests;
-* frontend component tests;
-* end-to-end tests;
-* AI evaluation tests;
-* prompt-injection tests;
-* provider-adapter tests;
-* performance tests.
+- unit tests;
+- integration tests;
+- API contract tests;
+- database tests;
+- RLS tests;
+- migration tests;
+- event tests;
+- frontend component tests;
+- end-to-end tests;
+- AI evaluation tests;
+- prompt-injection tests;
+- provider-adapter tests;
+- performance tests.
 
 Tests should verify observable behaviour, not internal implementation unnecessarily.
 
@@ -729,14 +735,14 @@ Every bug fix requires a regression test where practical.
 
 Every production service must provide:
 
-* health endpoint;
-* readiness endpoint;
-* structured logs;
-* request or execution ID;
-* trace propagation;
-* error metrics;
-* latency metrics;
-* version metadata.
+- health endpoint;
+- readiness endpoint;
+- structured logs;
+- request or execution ID;
+- trace propagation;
+- error metrics;
+- latency metrics;
+- version metadata.
 
 Do not add excessive logging.
 
@@ -768,10 +774,10 @@ Keep files understandable.
 
 Guidance:
 
-* functions should usually perform one operation;
-* avoid functions with many branches;
-* avoid modules that combine unrelated domains;
-* split only when there is a clear responsibility boundary.
+- functions should usually perform one operation;
+- avoid functions with many branches;
+- avoid modules that combine unrelated domains;
+- split only when there is a clear responsibility boundary.
 
 Do not split files merely to meet an arbitrary line count.
 
@@ -798,14 +804,14 @@ markdown files/phase-0-implementation-plan.md
 
 The findings must include:
 
-* architecture summary;
-* unresolved decisions;
-* document conflicts;
-* missing provider decisions;
-* missing environment decisions;
-* MVP boundaries;
-* highest security risks;
-* proposed minimal repository scaffold.
+- architecture summary;
+- unresolved decisions;
+- document conflicts;
+- missing provider decisions;
+- missing environment decisions;
+- MVP boundaries;
+- highest security risks;
+- proposed minimal repository scaffold.
 
 Do not write product code in this stage.
 
@@ -828,15 +834,15 @@ tests/
 
 Add:
 
-* project-level README files;
-* package/dependency files;
-* linting;
-* formatting;
-* type checking;
-* minimal health endpoints;
-* minimal tests;
-* `.env.example` files;
-* root development commands.
+- project-level README files;
+- package/dependency files;
+- linting;
+- formatting;
+- type checking;
+- minimal health endpoints;
+- minimal tests;
+- `.env.example` files;
+- root development commands.
 
 Do not implement property features yet.
 
@@ -844,12 +850,12 @@ Do not implement property features yet.
 
 Add path-aware CI for:
 
-* frontend;
-* backend;
-* AI platform;
-* data platform;
-* contracts;
-* security scanning.
+- frontend;
+- backend;
+- AI platform;
+- data platform;
+- contracts;
+- security scanning.
 
 Do not deploy production resources yet.
 
@@ -857,23 +863,23 @@ Do not deploy production resources yet.
 
 Implement only the first shared contracts:
 
-* health response;
-* error response;
-* money;
-* rate or percentage;
-* pagination;
-* idempotency;
-* event envelope;
-* API version metadata.
+- health response;
+- error response;
+- money;
+- rate or percentage;
+- pagination;
+- idempotency;
+- event envelope;
+- API version metadata.
 
 ## Stage 5 — Owner identity and isolation foundation
 
 Implement:
 
-* profile;
-* RLS;
-* audit event;
-* outbox event.
+- profile;
+- RLS;
+- audit event;
+- outbox event.
 
 Do not implement properties before owner isolation is tested.
 
@@ -889,15 +895,15 @@ view property
 
 Include:
 
-* database;
-* migration;
-* RLS;
-* backend;
-* contracts;
-* frontend;
-* tests;
-* observability;
-* documentation.
+- database;
+- migration;
+- RLS;
+- backend;
+- contracts;
+- frontend;
+- tests;
+- observability;
+- documentation.
 
 ## Stage 7 — Financial foundation
 
@@ -930,14 +936,14 @@ portfolio dashboard
 
 Only after the portfolio foundation is stable, implement:
 
-* AI execution;
-* agent registry;
-* one Finance Agent;
-* backend calculation tools;
-* structured validation;
-* progress;
-* evaluation;
-* cost tracking.
+- AI execution;
+- agent registry;
+- one Finance Agent;
+- backend calculation tools;
+- structured validation;
+- progress;
+- evaluation;
+- cost tracking.
 
 Do not initially create every planned agent.
 
@@ -945,14 +951,14 @@ Do not initially create every planned agent.
 
 Start with:
 
-* source registry;
-* licence registry;
-* one official public source;
-* raw;
-* canonical;
-* curated;
-* quality check;
-* publication event.
+- source registry;
+- licence registry;
+- one official public source;
+- raw;
+- canonical;
+- curated;
+- quality check;
+- publication event.
 
 Do not integrate every provider at once.
 
@@ -1003,11 +1009,11 @@ Provide a short implementation plan.
 
 The plan should include:
 
-* files to change;
-* tests to add;
-* assumptions;
-* risks;
-* out-of-scope items.
+- files to change;
+- tests to add;
+- assumptions;
+- risks;
+- out-of-scope items.
 
 ## Step 4 — Implement
 
@@ -1017,25 +1023,25 @@ Implement the smallest complete solution.
 
 Run relevant:
 
-* formatting;
-* linting;
-* type checking;
-* tests;
-* migration checks;
-* contract checks;
-* build.
+- formatting;
+- linting;
+- type checking;
+- tests;
+- migration checks;
+- contract checks;
+- build.
 
 ## Step 6 — Review
 
 Review the change for:
 
-* unnecessary complexity;
-* duplicate code;
-* security;
-* permissions;
-* financial accuracy;
-* missing tests;
-* hidden side effects.
+- unnecessary complexity;
+- duplicate code;
+- security;
+- permissions;
+- financial accuracy;
+- missing tests;
+- hidden side effects.
 
 ## Step 7 — Report
 
@@ -1080,14 +1086,14 @@ Every important operation must be explainable.
 
 Code should make it easy to determine:
 
-* who performed an action;
-* which household was affected;
-* which record changed;
-* which calculation version was used;
-* which AI agent and prompt version ran;
-* which provider and dataset version supplied data;
-* which communication version was approved;
-* which release introduced behaviour.
+- who performed an action;
+- which household was affected;
+- which record changed;
+- which calculation version was used;
+- which AI agent and prompt version ran;
+- which provider and dataset version supplied data;
+- which communication version was approved;
+- which release introduced behaviour.
 
 Avoid hidden processing and silent mutations.
 
@@ -1097,11 +1103,11 @@ Avoid hidden processing and silent mutations.
 
 Errors must be:
 
-* explicit;
-* typed or classified;
-* safe for users;
-* useful for operations;
-* linked to trace IDs.
+- explicit;
+- typed or classified;
+- safe for users;
+- useful for operations;
+- linked to trace IDs.
 
 Do not catch broad exceptions merely to suppress them.
 
@@ -1115,11 +1121,11 @@ Do not silently continue after data-integrity or authorisation failures.
 
 Every new environment variable must be:
 
-* documented;
-* included in `.env.example`;
-* validated at startup;
-* marked secret or non-secret;
-* scoped to the correct project.
+- documented;
+- included in `.env.example`;
+- validated at startup;
+- marked secret or non-secret;
+- scoped to the correct project.
 
 Do not add configuration for hypothetical future features.
 
@@ -1133,17 +1139,17 @@ Required production configuration should fail fast when absent.
 
 A task is complete only when:
 
-* acceptance criteria pass;
-* implementation is minimal;
-* code is readable;
-* tests exist;
-* security is enforced;
-* documentation is updated;
-* configuration is documented;
-* logs and errors are sufficient;
-* no unused code remains;
-* no unsupported assumptions are hidden;
-* commands and results are reported.
+- acceptance criteria pass;
+- implementation is minimal;
+- code is readable;
+- tests exist;
+- security is enforced;
+- documentation is updated;
+- configuration is documented;
+- logs and errors are sufficient;
+- no unused code remains;
+- no unsupported assumptions are hidden;
+- commands and results are reported.
 
 ---
 
