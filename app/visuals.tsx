@@ -9,8 +9,9 @@ import {
   ChartNoAxesCombined,
   Settings2,
   ArrowDownLeft,
-  Plus,
+  RotateCcw,
 } from 'lucide-react';
+import { CountUp, progressAt, useShowcaseTimeline } from './home-motion';
 export function Brand({ light = false }: { light?: boolean }) {
   return (
     <span className={`brand ${light ? 'brand-light' : ''}`}>
@@ -85,7 +86,13 @@ export function HouseArt({ variant = 0 }: { variant?: number }) {
     </svg>
   );
 }
-export function TrendChart({ simple = false }: { simple?: boolean }) {
+export function TrendChart({
+  simple = false,
+  progress = 1,
+}: {
+  simple?: boolean;
+  progress?: number;
+}) {
   return (
     <svg
       className="trend-chart"
@@ -105,22 +112,27 @@ export function TrendChart({ simple = false }: { simple?: boolean }) {
       <path
         d="M0 139C22 139 33 127 54 131S85 114 110 120 141 99 166 104 202 85 228 96 259 72 287 80 323 57 350 63 385 46 410 52 446 31 473 37 510 21 540 28 573 9 600 13V170H0Z"
         fill="url(#chartFill)"
+        opacity={progress}
       />
       <path
         className="draw-line"
+        pathLength={100}
+        style={{ animation: 'none', strokeDasharray: 100, strokeDashoffset: 100 * (1 - progress) }}
         d="M0 139C22 139 33 127 54 131S85 114 110 120 141 99 166 104 202 85 228 96 259 72 287 80 323 57 350 63 385 46 410 52 446 31 473 37 510 21 540 28 573 9 600 13"
         fill="none"
         stroke="#2c654c"
         strokeWidth="3"
         strokeLinecap="round"
       />
-      {!simple && <circle cx="600" cy="13" r="5" fill="#2c654c" />}
+      {!simple && progress > 0.98 && <circle cx="600" cy="13" r="5" fill="#2c654c" />}
     </svg>
   );
 }
 export function PortfolioPreview({ mode = 'overview' }: { mode?: string }) {
+  const { ref, elapsed, restart } = useShowcaseTimeline();
+  const progress = progressAt(elapsed, 180, 2600);
   return (
-    <div className="preview-shell">
+    <div ref={ref} className="preview-shell">
       <div className="preview-sidebar">
         <span className="mini-mark">
           <House size={18} />
@@ -150,19 +162,23 @@ export function PortfolioPreview({ mode = 'overview' }: { mode?: string }) {
           <div>
             <span>Portfolio value</span>
             <strong>
-              $2,450,000
+              <CountUp value={2450000} elapsed={elapsed} />
               <span className="green-dot" />
             </strong>
             <small>User-entered values</small>
           </div>
           <div>
             <span>Total equity</span>
-            <strong>$920,000</strong>
+            <strong>
+              <CountUp value={920000} elapsed={elapsed} delay={150} />
+            </strong>
             <small>Across 3 properties</small>
           </div>
           <div>
             <span>Annualised net</span>
-            <strong>$18,720</strong>
+            <strong>
+              <CountUp value={18720} elapsed={elapsed} delay={300} />
+            </strong>
             <small>Entered income − expenses</small>
           </div>
         </div>
@@ -185,23 +201,29 @@ export function PortfolioPreview({ mode = 'overview' }: { mode?: string }) {
               <span>
                 <ArrowDownLeft size={16} /> Rental income
               </span>
-              <b>$84,240</b>
+              <b>
+                <CountUp value={84240} elapsed={elapsed} />
+              </b>
             </p>
             <p>
               <span>
                 <ArrowUpRight size={16} /> Recorded expenses
               </span>
-              <b>$65,520</b>
+              <b>
+                <CountUp value={65520} elapsed={elapsed} delay={250} />
+              </b>
             </p>
             <p>
               <span>
                 <CircleDollarSign size={16} /> Annualised net
               </span>
-              <b className="green-text">$18,720</b>
+              <b className="green-text">
+                <CountUp value={18720} elapsed={elapsed} delay={500} />
+              </b>
             </p>
             <div className="cash-bars">
-              <i style={{ width: '82%' }} />
-              <i style={{ width: '64%' }} />
+              <i style={{ width: `${82 * progress}%` }} />
+              <i style={{ width: `${64 * progress}%` }} />
             </div>
           </div>
         ) : (
@@ -210,7 +232,7 @@ export function PortfolioPreview({ mode = 'overview' }: { mode?: string }) {
               <b>Your portfolio, at a glance</b>
               <span>Sample data · not a valuation</span>
             </div>
-            <TrendChart />
+            <TrendChart progress={progress} />
             <div className="chart-months">
               {'Jan Feb Mar Apr May Jun'.split(' ').map((m) => (
                 <span key={m}>{m}</span>
@@ -222,7 +244,15 @@ export function PortfolioPreview({ mode = 'overview' }: { mode?: string }) {
           <span>
             <span className="green-dot" /> All your properties. One clear view.
           </span>
-          <Plus size={14} />
+          <button
+            className="preview-replay"
+            type="button"
+            onClick={restart}
+            aria-label="Replay portfolio animation"
+            title="Replay animation"
+          >
+            <RotateCcw size={12} />
+          </button>
         </div>
       </div>
     </div>

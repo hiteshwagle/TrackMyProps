@@ -18,6 +18,7 @@ import {
   CircleDollarSign,
 } from 'lucide-react';
 import { Brand, PortfolioPreview, HouseArt } from './visuals';
+import { AnalysisDemo } from './home-motion';
 const features = [
   {
     id: 'overview',
@@ -284,24 +285,7 @@ export default function Home({ signInHref }: { signInHref: string }) {
             </div>
           </div>
           <div className="detail-card reveal">
-            <div className="detail-visual equity-visual">
-              <span className="equity-label">UNDERSTAND WHAT YOU OWN</span>
-              <div className="equity-ring">
-                <div>
-                  <small>Illustrative equity</small>
-                  <strong>$320,000</strong>
-                  <span>Value − remaining debt</span>
-                </div>
-              </div>
-              <div className="equity-legend">
-                <span>
-                  <i /> Loan balance
-                </span>
-                <span>
-                  <i /> Equity
-                </span>
-              </div>
-            </div>
+            <AnalysisDemo />
             <div className="detail-card-copy">
               <span className="small-icon">
                 <SlidersHorizontal size={20} />
