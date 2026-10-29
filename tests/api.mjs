@@ -395,6 +395,135 @@ try {
   check(JSON.stringify(resources).includes('objectKey'), false, 'private storage keys not exposed');
   const withPhoto = await (await call('/api/v1/portfolio')).json();
   check(withPhoto.properties[0].photo_id, photoId, 'property card references uploaded cover photo');
+  // Dashboard reminders: same identity/origin boundaries as portfolio records.
+  check(
+    (await call('/api/v1/reminders', { owner: null })).status,
+    401,
+    'anonymous reminders denied',
+  );
+  const reminderInput = {
+    property_id: id,
+    kind: 'inspection',
+    title: 'Synthetic inspection',
+    due_date: '2026-12-01',
+    notice_days: 30,
+  };
+  check(
+    (await call('/api/v1/reminders', { method: 'POST', owner: 'owner-b', data: reminderInput }))
+      .status,
+    404,
+    'cross-owner reminder creation denied',
+  );
+  check(
+    (
+      await call('/api/v1/reminders', {
+        method: 'POST',
+        data: reminderInput,
+        origin: 'https://evil.invalid',
+      })
+    ).status,
+    403,
+    'reminder origin enforced',
+  );
+  check(
+    (
+      await call('/api/v1/reminders', {
+        method: 'POST',
+        data: { ...reminderInput, owner_id: 'owner-b' },
+      })
+    ).status,
+    400,
+    'reminder ownership injection rejected',
+  );
+  const reminderResponse = await call('/api/v1/reminders', { method: 'POST', data: reminderInput });
+  check(reminderResponse.status, 201, 'owner creates reminder');
+  const reminderId = (await reminderResponse.json()).id;
+  const remindersPath = '/api/v1/reminders/' + reminderId;
+  let reminderList = (await (await call('/api/v1/reminders')).json()).alerts;
+  check(
+    reminderList.some((a) => a.id === reminderId),
+    true,
+    'manual reminder persists',
+  );
+  const leaseAlert = reminderList.find((a) => a.automatic);
+  check(Boolean(leaseAlert), true, 'existing lease generates expiry alert');
+  check(
+    (await (await call('/api/v1/reminders', { owner: 'owner-b' })).json()).alerts.length,
+    0,
+    'other owner sees no reminders',
+  );
+  check(
+    (await call(remindersPath, { method: 'PATCH', owner: 'owner-b', data: { action: 'complete' } }))
+      .status,
+    404,
+    'cross-owner reminder completion denied',
+  );
+  check(
+    (await call(remindersPath, { method: 'DELETE', owner: 'owner-b' })).status,
+    404,
+    'cross-owner reminder deletion denied',
+  );
+  check(
+    (await call(remindersPath, { method: 'PATCH', data: { action: 'snooze' } })).status,
+    200,
+    'owner snoozes reminder',
+  );
+  reminderList = (await (await call('/api/v1/reminders')).json()).alerts;
+  check(reminderList.find((a) => a.id === reminderId).state, 'snoozed', 'snooze persists');
+  const leasePath = '/api/v1/reminders/' + encodeURIComponent(leaseAlert.id);
+  check(
+    (await call(leasePath, { method: 'PATCH', data: { action: 'complete' } })).status,
+    200,
+    'automatic lease alert can be completed',
+  );
+  reminderList = (await (await call('/api/v1/reminders')).json()).alerts;
+  check(
+    reminderList.find((a) => a.id === leaseAlert.id).state,
+    'completed',
+    'automatic completion persists',
+  );
+  check(
+    (await call(leasePath, { method: 'PATCH', data: { action: 'reopen' } })).status,
+    200,
+    'automatic alert can reopen',
+  );
+  check(
+    (await call(leasePath, { method: 'DELETE' })).status,
+    400,
+    'automatic alert cannot be deleted',
+  );
+  await call('/api/v1/properties/' + id, { method: 'PATCH', data: { status: 'archived' } });
+  check(
+    (await (await call('/api/v1/reminders')).json()).alerts.length,
+    0,
+    'archived property alerts hidden',
+  );
+  check(
+    (await call('/api/v1/reminders', { method: 'POST', data: reminderInput })).status,
+    404,
+    'archived property rejects new reminder',
+  );
+  await call('/api/v1/properties/' + id, { method: 'PATCH', data: { status: 'active' } });
+  check(
+    (await (await call('/api/v1/export')).json()).reminders.length,
+    2,
+    'reminder data included in export',
+  );
+  check(
+    (await (await call('/api/v1/export', { owner: 'owner-b' })).json()).reminders.length,
+    0,
+    'reminder export owner scoped',
+  );
+  check(
+    (await call(remindersPath, { method: 'DELETE' })).status,
+    200,
+    'owner deletes manual reminder',
+  );
+  check(
+    (await (await call('/api/v1/reminders')).json()).alerts.some((a) => a.id === reminderId),
+    false,
+    'manual deletion persists',
+  );
   const ownerExport = await (await call('/api/v1/export')).json();
   check(ownerExport.tenants.length, 1, 'owner export includes tenant data');
   check(ownerExport.files.length, 2, 'owner export includes file metadata');

@@ -15,6 +15,7 @@ The earlier Expo frontend, Python services, Firebase/Supabase integrations and t
 - Structured Australian property attributes, manual address entry, purchase information, optional current value and simple loan summary.
 - Named recurring and one-off income/expense entries and confirmed removal.
 - Annualised property/portfolio totals, monthly-average net, completeness indicators, and owner-scoped JSON export.
+- Dashboard reminders: automatic lease-expiry alerts plus manual rent reviews, inspections, insurance and other events; completion, reopening and seven-day snooze. See `docs/reminders.md`.
 - Exact fixed-point financial arithmetic on the server. Dates use calendar years, not Australian financial years.
 - Private property photo galleries (up to 10 JPG/PNG/WebP photos, 800 KB each after crop/compression) and document storage (up to 20 PDF/DOCX/XLSX/TXT/CSV files, 10 MB each). The latest photo is shown on its property card.
 - Tenant create/edit/remove with contact details, tenancy status, lease dates, rent, bond and notes. Tenant rent is a reference and does not automatically create income.

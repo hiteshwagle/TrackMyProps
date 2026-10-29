@@ -28,6 +28,7 @@ import {
 } from 'lucide-react';
 import { Brand, HouseArt } from '../visuals';
 import PropertyResources from './property-resources';
+import Reminders from './reminders';
 import type { Property, PropertyInput, CashFlowItem, Summary } from '../../lib/domain';
 type Portfolio = { properties: Property[]; items: CashFlowItem[]; summary: Summary };
 type View = 'dashboard' | 'properties' | 'analytics' | 'settings';
@@ -275,6 +276,9 @@ export default function Dashboard({
           ) : null}
           {!loading && data && (
             <>
+              {view === 'dashboard' && (
+                <Reminders properties={data.properties} onOpen={setSelected} />
+              )}
               {(view === 'dashboard' || view === 'analytics') && (
                 <>
                   <div className="metrics-grid">

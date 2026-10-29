@@ -79,3 +79,19 @@ export const tenants = sqliteTable(
     }).onDelete('cascade'),
   ],
 );
+export const reminders = sqliteTable(
+  'reminders',
+  {
+    id: text('id').primaryKey(),
+    ownerId: text('owner_id').notNull(),
+    propertyId: text('property_id').notNull(),
+    data: text('data').notNull(),
+  },
+  (t) => [
+    index('reminders_owner_property').on(t.ownerId, t.propertyId),
+    foreignKey({
+      columns: [t.propertyId, t.ownerId],
+      foreignColumns: [properties.id, properties.ownerId],
+    }).onDelete('cascade'),
+  ],
+);
