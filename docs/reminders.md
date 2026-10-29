@@ -22,3 +22,11 @@ Five deterministic tests cover notice boundary, overdue/today, archived/ended re
 ## Cash flow comparison remains future work
 
 The existing cash flow totals remain annualised entered items. Actual versus forecast would need separate expected schedules and dated received/paid transactions, monthly comparisons and explicit proration rules. This change does not label annualised entries as actual transactions or implement partial-year calculations.
+
+## Recurring reminders extension
+
+Manual reminders now support portfolio-wide scope, bills/maintenance, optional AUD amount, notes and an uploaded document link. Repeat choices: once, weekly, fortnightly, monthly, quarterly, six-monthly or yearly. Notice is 0–365 days before due. Optional end date and maximum count stop repeats at whichever occurs first. Monthly/yearly dates stay anchored to the original day, clamped to the target month's last day.
+
+Occurrences are derived from an owner-scoped series and individually saved when acted on. Past unpaid occurrences remain visible alongside the next future occurrence. Completion is a task acknowledgement and never creates a financial transaction. Snoozing affects only the occurrence. Pause/resume applies to the series; edit supports one occurrence or splitting this-and-future into a new series atomically. Existing earlier occurrences retain their schedule. Portfolio reminders have a null property reference; property-scoped records retain composite ownership foreign keys. Document links require authenticated ownership and matching property, and private download authorization remains enforced. Deleted documents cannot be downloaded through old links.
+
+Completion records remain exportable. Repetition is derived when the dashboard loads rather than by a background scheduler. Email has not been enabled; future email delivery will require opt-in settings and an idempotent delivery ledger. The UI currently presents one upcoming occurrence per series together with all missed occurrences (bounded at 5,000 derivations per series).

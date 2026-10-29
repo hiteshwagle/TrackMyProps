@@ -84,7 +84,7 @@ export const reminders = sqliteTable(
   {
     id: text('id').primaryKey(),
     ownerId: text('owner_id').notNull(),
-    propertyId: text('property_id').notNull(),
+    propertyId: text('property_id'),
     data: text('data').notNull(),
   },
   (t) => [

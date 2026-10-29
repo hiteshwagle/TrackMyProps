@@ -524,6 +524,96 @@ try {
     false,
     'manual deletion persists',
   );
+  const repeating = {
+    property_id: null,
+    kind: 'bill',
+    title: 'Portfolio insurance',
+    due_date: '2026-01-31',
+    notice_days: 0,
+    repeat: 'monthly',
+    repeat_count: 12,
+    amount: '123.45',
+    notes: 'Synthetic test',
+  };
+  const rr = await call('/api/v1/reminders', { method: 'POST', data: repeating });
+  check(rr.status, 201, 'portfolio recurring reminder created');
+  const rid = (await rr.json()).id;
+  let occurrences = (await (await call('/api/v1/reminders')).json()).alerts.filter(
+    (a) => a.series_id === rid,
+  );
+  check(occurrences.length > 1, true, 'missed recurring occurrences retained');
+  check(occurrences[1].due_date, '2026-02-28', 'monthly schedule clamps February');
+  const occurrencePath = '/api/v1/reminders/' + encodeURIComponent(occurrences[0].id);
+  check(
+    (
+      await call(occurrencePath, {
+        method: 'PATCH',
+        owner: 'owner-b',
+        data: { action: 'complete' },
+      })
+    ).status,
+    404,
+    'cross-owner recurring completion denied',
+  );
+  check(
+    (await call(occurrencePath, { method: 'PATCH', data: { action: 'complete' } })).status,
+    200,
+    'recurring occurrence completed',
+  );
+  check(
+    (await call(occurrencePath, { method: 'PATCH', data: { action: 'pause' } })).status,
+    200,
+    'recurring series paused',
+  );
+  check(
+    (await (await call('/api/v1/reminders')).json()).alerts
+      .filter((a) => a.series_id === rid && !a.completed)
+      .every((a) => a.state === 'paused'),
+    true,
+    'pause hides all pending occurrences',
+  );
+  check(
+    (await call(occurrencePath, { method: 'PATCH', data: { action: 'resume' } })).status,
+    200,
+    'recurring series resumed',
+  );
+  check(
+    (
+      await call(occurrencePath, {
+        method: 'PATCH',
+        data: {
+          action: 'edit',
+          scope: 'one',
+          data: { ...repeating, title: 'Edited occurrence', repeat: 'once' },
+        },
+      })
+    ).status,
+    200,
+    'single occurrence edited',
+  );
+  check(
+    (await (await call('/api/v1/reminders')).json()).alerts.find((a) => a.id === occurrences[0].id)
+      .title,
+    'Edited occurrence',
+    'occurrence edit persists',
+  );
+  check(
+    (
+      await call('/api/v1/reminders', {
+        method: 'POST',
+        data: { ...repeating, end_date: '2025-01-01' },
+      })
+    ).status,
+    400,
+    'invalid repeat end rejected',
+  );
+  const nextPath = '/api/v1/reminders/' + encodeURIComponent(occurrences[1].id);
+  check((await call(nextPath,{method:'PATCH',data:{action:'edit',scope:'future',data:{...repeating,due_date:'2026-02-28',title:'New future series'}}})).status,200,'this-and-future edit splits series');
+  const splitList=(await (await call('/api/v1/reminders')).json()).alerts;
+  check(splitList.find(a=>a.id===occurrences[0].id).completed,true,'earlier completion survives future edit');
+  check(splitList.some(a=>a.title==='New future series'),true,'replacement future series appears');
+  check((await call('/api/v1/reminders',{method:'POST',data:{...repeating,document_id:'ffffffff-ffff-4fff-afff-ffffffffffff'}})).status,404,'unowned document link rejected');
+  await call('/api/v1/reminders/' + rid, { method: 'DELETE' });
   const ownerExport = await (await call('/api/v1/export')).json();
   check(ownerExport.tenants.length, 1, 'owner export includes tenant data');
   check(ownerExport.files.length, 2, 'owner export includes file metadata');

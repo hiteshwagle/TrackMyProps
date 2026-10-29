@@ -15,7 +15,11 @@ export async function listAlerts(ownerId: string) {
     listReminders(ownerId),
   ]);
   const today = sydneyToday();
-  return { today, alerts: buildAlerts(portfolio.properties, resources.tenants, records, today) };
+  return {
+    documents: resources.files.filter((f) => f.kind === 'document'),
+    today,
+    alerts: buildAlerts(portfolio.properties, resources.tenants, records, today),
+  };
 }
 export async function saveReminder(ownerId: string, record: ReminderRecord) {
   await getDb()
@@ -29,7 +33,7 @@ export async function saveReminder(ownerId: string, record: ReminderRecord) {
     .onConflictDoUpdate({
       target: reminders.id,
       set: { data: JSON.stringify(record) },
-      setWhere: and(eq(reminders.ownerId, ownerId), eq(reminders.propertyId, record.property_id)),
+      setWhere: eq(reminders.ownerId, ownerId),
     });
 }
 export async function deleteReminder(ownerId: string, id: string) {
@@ -37,4 +41,24 @@ export async function deleteReminder(ownerId: string, id: string) {
     .delete(reminders)
     .where(and(eq(reminders.ownerId, ownerId), eq(reminders.id, id)))
     .returning({ id: reminders.id });
+}
+
+export async function saveReminderBatch(ownerId: string, records: ReminderRecord[]) {
+  await getDb().batch(
+    records.map((record) =>
+      getDb()
+        .insert(reminders)
+        .values({
+          id: record.id,
+          ownerId,
+          propertyId: record.property_id,
+          data: JSON.stringify(record),
+        })
+        .onConflictDoUpdate({
+          target: reminders.id,
+          set: { data: JSON.stringify(record) },
+          setWhere: eq(reminders.ownerId, ownerId),
+        }),
+    ) as any,
+  );
 }

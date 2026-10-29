@@ -1,6 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { buildAlerts, sydneyToday, addDays, reminderSchema } from '../lib/reminders-domain.ts';
+import {
+  occurrenceDate,
+  buildAlerts,
+  sydneyToday,
+  addDays,
+  reminderSchema,
+} from '../lib/reminders-domain.ts';
 import type { Property } from '../lib/domain.ts';
 import type { Tenant } from '../lib/resources-domain.ts';
 const p = { id: 'p', status: 'active', display_name: 'Home' } as Property;
@@ -60,7 +66,39 @@ test('reminder inputs reject invalid dates, extra ownership and unsupported noti
     { due_date: '2026-02-30' },
     { title: '' },
     { owner_id: 'x' },
-    { notice_days: 5 },
+    { notice_days: -1 },
   ])
     assert.equal(reminderSchema.safeParse({ ...r, ...patch }).success, false);
+});
+
+test('repeats retain month-end anchors and leap-year anniversaries', () => {
+  assert.equal(occurrenceDate('2027-01-31', 'monthly', 1), '2027-02-28');
+  assert.equal(occurrenceDate('2027-01-31', 'monthly', 2), '2027-03-31');
+  assert.equal(occurrenceDate('2028-02-29', 'yearly', 1), '2029-02-28');
+  assert.equal(occurrenceDate('2028-02-29', 'yearly', 4), '2032-02-29');
+});
+test('missed occurrences remain visible and completion advances without schedule drift', () => {
+  const r = {
+    id: 'r',
+    property_id: null,
+    kind: 'bill' as const,
+    title: 'Rates',
+    due_date: '2026-08-31',
+    notice_days: 7,
+    repeat: 'monthly' as const,
+    completed: false,
+    snoozed_until: null,
+  };
+  let list = buildAlerts([], [], [r], '2026-10-01');
+  assert.deepEqual(
+    list.map((a) => a.due_date),
+    ['2026-08-31', '2026-09-30', '2026-10-31'],
+  );
+  const done = { ...list[0], completed: true };
+  list = buildAlerts([], [], [r, done], '2026-10-01');
+  assert.equal(list[0].state, 'completed');
+  assert.equal(list[1].state, 'overdue');
+  assert.equal(buildAlerts([], [], [{ ...r, paused: true }], '2026-10-01')[0].state, 'paused');
+  assert.equal(buildAlerts([], [], [{ ...r, repeat_count: 2 }], '2026-10-01').length, 2);
+  assert.equal(buildAlerts([], [], [{ ...r, end_date: '2026-09-01' }], '2026-10-01').length, 1);
 });
